@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#b48c50" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="StudyOS" />
+  <meta name="description" content="AI-powered academic planner" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>StudyOS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #1a1a24;
+      --gold: #b48c50;
+      --gold2: #7a5c30;
+      --gold-light: rgba(180,140,80,0.15);
+      --text: #e8e4dc;
+      --text2: #999;
+      --text3: #555;
+      --border: rgba(255,255,255,0.07);
+      --border-gold: rgba(180,140,80,0.3);
+      --danger: #e07060;
+      --success: #60c080;
+      --radius: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Playfair Display', Georgia, serif; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+    /* Header */
+    #header {
+      padding: calc(var(--safe-top) + 14px) 16px 14px;
+      background: rgba(10,10,15,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; position: relative; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      display: flex; align-items: center; justify-content: center; font-size: 17px;
+    }
+    .logo-text { line-height: 1; }
+    .logo-title { font-size: 14px; font-weight: 700; letter-spacing: 2.5px; color: var(--text); }
+    .logo-sub { font-size: 9px; color: var(--text3); letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+    .streak-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    }
+    .streak-num { color: var(--gold); font-weight: 600; font-size: 16px; }
+    .streak-label { color: var(--text3); font-size: 10px; }
+
+    /* Nav */
+    #nav {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      display: flex; padding-bottom: var(--safe-bot);
+      flex-shrink: 0; position: relative; z-index: 100;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 10px 4px; cursor: pointer; border: none; background: transparent;
+      color: var(--text3); transition: color 0.2s; gap: 3px; font-family: 'JetBrains Mono', monospace;
+    }
+    .nav-item.active { color: var(--gold); }
+    .nav-item span:first-child { font-size: 20px; }
+    .nav-item span:last-child { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+    .nav-dot {
+      width: 4px; height: 4px; border-radius: 50%; background: var(--gold);
+      position: absolute; top: 6px; right: 50%; transform: translateX(50%);
+    }
+
+    /* Main content */
+    #main { flex: 1; overflow-y: auto; position: relative; }
+    .view { display: none; padding: 16px; min-height: 100%; }
+    .view.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .card:active { border-color: var(--border-gold); }
+
+    /* Section labels */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: 2.5px; color: var(--text3); text-transform: uppercase;
+      margin-bottom: 10px; margin-top: 20px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .stat-card {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 12px;
+    }
+    .stat-icon { font-size: 18px; margin-bottom: 6px; }
+    .stat-val { font-size: 24px; font-weight: 700; color: var(--gold); line-height: 1; }
+    .stat-key { font-size: 9px; color: var(--text3); font-family: 'JetBrains Mono', monospace; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
+    .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 16px; }
+    .progress-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 5px; font-family: 'JetBrains Mono', monospace; }
+    .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 4px; transition: width 0.6s ease; }
+
+    /* Session items */
+    .session-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px; border-radius: 10px; margin-bottom: 6px;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .session-item.done { opacity: 0.5; }
+    .session-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .session-body { flex: 1; min-width: 0; }
+    .session-topic { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .session-topic.done { text-decoration: line-through; color: var(--text3); }
+    .session-method { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+    .session-method strong { color: var(--gold); }
+    .session-meta { font-size: 10px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+    .done-btn {
+      padding: 6px 12px; border-radius: 6px; border: 1px solid var(--gold);
+      background: transparent; color: var(--gold); cursor: pointer; font-size: 11px;
+      font-family: 'JetBrains Mono', monospace; flex-shrink: 0; align-self: center;
+      transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+    }
+    .done-btn:active { background: var(--gold-light); }
+
+    /* Habit tracker */
+    .habit-grid { display: flex; gap: 5px; flex-wrap: wrap; }
+    .habit-day {
+      width: 35px; height: 35px; border-radius: 7px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace;
+    }
+    .habit-day .hd-num { font-size: 11px; font-weight: 600; }
+    .habit-day .hd-label { font-size: 8px; opacity: 0.7; }
+    .habit-day.studied { background: var(--gold); color: var(--bg); }
+    .habit-day.missed { background: rgba(255,255,255,0.04); color: var(--text3); border: 1px solid transparent; }
+    .habit-day.today { border: 1px solid var(--gold); color: var(--text2); background: transparent; }
+
+    /* Inputs */
+    .input-field {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 11px 13px; color: var(--text); font-size: 14px;
+      font-family: 'Playfair Display', Georgia, serif; transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: var(--gold); outline: none; }
+    .input-field::placeholder { color: var(--text3); }
+    textarea.input-field { resize: vertical; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    select.input-field { cursor: pointer; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%; padding: 13px; border-radius: 9px; border: none;
+      background: var(--gold); color: var(--bg); font-weight: 700; font-size: 14px;
+      cursor: pointer; letter-spacing: 0.5px; transition: opacity 0.2s;
+      -webkit-tap-highlight-color: transparent; font-family: 'Playfair Display', serif;
+    }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-outline {
+      padding: 11px 18px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+      transition: border-color 0.2s; -webkit-tap-highlight-color: transparent;
+    }
+    .btn-outline:active { border-color: var(--gold); }
+    .btn-gold-outline {
+      padding: 10px 18px; border-radius: 8px; border: 1px solid var(--gold);
+      background: transparent; color: var(--gold); cursor: pointer; font-size: 13px;
+      font-family: 'JetBrains Mono', monospace; transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-gold-outline:active { background: var(--gold-light); }
+
+    /* Add subject form */
+    #add-form { display: none; background: rgba(255,255,255,0.02); border: 1px solid var(--border-gold); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+    #add-form.open { display: block; }
+    .form-title { font-size: 12px; color: var(--gold); letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; margin-bottom: 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .form-group { margin-bottom: 8px; }
+    .form-label { font-size: 10px; color: var(--text3); letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    .form-btns { display: flex; gap: 8px; margin-top: 12px; }
+
+    /* Subject cards */
+    .subject-card { background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .subject-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .subject-name { font-size: 16px; font-weight: 700; }
+    .subject-meta { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .remove-btn { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 0 4px; }
+    .due-urgent { color: var(--danger) !important; }
+    .due-soon { color: #d4aa60 !important; }
+
+    /* Method badge */
+    .method-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(180,140,80,0.08); border: 1px solid rgba(180,140,80,0.2);
+      border-radius: 5px; padding: 3px 8px; font-size: 10px; color: var(--gold);
+      font-family: 'JetBrains Mono', monospace; margin-bottom: 10px;
+    }
+
+    /* AI Tutor */
+    #tutor-chat { height: calc(100dvh - 280px); overflow-y: auto; margin-bottom: 10px; padding: 8px 0; }
+    .chat-bubble { margin-bottom: 12px; display: flex; }
+    .chat-bubble.user { justify-content: flex-end; }
+    .chat-bubble.ai { justify-content: flex-start; }
+    .bubble-inner {
+      max-width: 85%; padding: 10px 14px; border-radius: 12px;
+      font-size: 13px; line-height: 1.65; white-space: pre-wrap;
+    }
+    .chat-bubble.user .bubble-inner { background: rgba(180,140,80,0.15); border: 1px solid var(--border-gold); }
+    .chat-bubble.ai .bubble-inner { background: rgba(255,255,255,0.04); border: 1px solid var(--border); }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row .input-field { flex: 1; }
+    .send-btn {
+      padding: 11px 16px; border-radius: 8px; border: none;
+      background: var(--gold); color: var(--bg); font-size: 18px; cursor: pointer;
+      flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: opacity 0.2s;
+    }
+    .send-btn:active { opacity: 0.8; }
+    .thinking { display: flex; align-items: center; gap: 6px; color: var(--gold); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); animation: blink 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    /* Settings */
+    .setting-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+    .setting-title { font-size: 13px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+    .setting-desc { font-size: 11px; color: var(--text3); margin-bottom: 12px; line-height: 1.5; }
+    .days-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .day-btn {
+      padding: 8px 14px; border-radius: 7px; cursor: pointer; border: 1px solid var(--border);
+      background: transparent; color: var(--text3); font-size: 12px; font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .day-btn.on { border-color: var(--gold); background: var(--gold-light); color: var(--gold); }
+    .hours-row { display: flex; align-items: center; gap: 12px; }
+    .hours-row input[type=range] { flex: 1; accent-color: var(--gold); }
+    .hours-val { font-size: 20px; font-weight: 700; color: var(--gold); font-family: 'JetBrains Mono', monospace; min-width: 36px; }
+
+    /* Notification */
+    #notif-bar {
+      position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-80px);
+      background: var(--bg3); border: 1px solid var(--gold); border-radius: 10px;
+      padding: 12px 20px; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+      z-index: 999; transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+      max-width: 320px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      white-space: nowrap;
+    }
+    #notif-bar.show { transform: translateX(-50%) translateY(calc(var(--safe-top) + 10px)); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 14px; margin-bottom: 6px; color: var(--text2); }
+    .empty-sub { font-size: 12px; line-height: 1.6; }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .view.active > * { animation: fadeUp 0.3s ease both; }
+
+    /* Install banner */
+    #install-banner {
+      display: none; position: fixed; bottom: calc(var(--safe-bot) + 60px); left: 12px; right: 12px;
+      background: var(--bg3); border: 1px solid var(--border-gold); border-radius: 12px;
+      padding: 14px 16px; z-index: 200; box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+    }
+    #install-banner.show { display: flex; align-items: center; gap: 12px; }
+    .install-text { flex: 1; font-size: 12px; line-height: 1.5; }
+    .install-text strong { display: block; color: var(--gold); font-size: 13px; margin-bottom: 2px; }
+
+    /* Reminder list */
+    .reminder-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border); margin-bottom: 6px; font-size: 12px;
+    }
+    .reminder-time { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div id="header">
+    <div class="logo">
+      <div class="logo-icon">📚</div>
+      <div class="logo-text">
+        <div class="logo-title">STUDY OS</div>
+        <div class="logo-sub">ACADEMIC PLANNER</div>
+      </div>
+    </div>
+    <div class="streak-badge">
+      🔥 <span class="streak-num" id="streak-display">0</span>
+      <span class="streak-label">day streak</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main">
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div id="greeting" style="margin-bottom:18px;">
+        <div style="font-size:20px;font-weight:700;" id="greeting-text">Good morning 👋</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;" id="date-text"></div>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="progress-wrap" id="progress-wrap"></div>
+
+      <div class="section-label">Today's Sessions</div>
+      <div id="today-sessions"></div>
+
+      <div class="section-label">14-Day Habit Tracker</div>
+      <div class="habit-grid" id="habit-grid"></div>
+    </div>
+
+    <!-- PLAN -->
+    <div class="view" id="view-plan">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">Study Plan</div>
+          <div style="font-size:11px;color:var(--text3);">AI-generated from your outlines</div>
+        </div>
+        <button class="btn-gold-outline" onclick="toggleAddForm()">+ Add</button>
+      </div>
+
+      <div id="add-form">
+        <div class="form-title">📋 New Subject / Assignment</div>
+        <div class="form-row">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Subject name</label>
+            <input class="input-field" id="f-name" placeholder="e.g. LCS221" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Deadline</label>
+            <input class="input-field" type="date" id="f-date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="input-field" id="f-type">
+            <option value="exam">Exam</option>
+            <option value="assignment">Assignment</option>
+            <option value="test">Test</option>
+            <option value="presentation">Presentation</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course outline / topics (one per line)</label>
+          <textarea class="input-field" id="f-outline" rows="7"
+            placeholder="Paste your outline here or list topics:&#10;&#10;e.g.&#10;The role of culture in language&#10;Sapir-Whorf hypothesis&#10;Language and identity&#10;Post-colonial linguistics&#10;..."></textarea>
+        </div>
+        <div class="form-btns">
+          <button class="btn-primary" style="flex:1;" onclick="addSubject()">✨ Generate Plan</button>
+          <button class="btn-outline" onclick="toggleAddForm()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="subject-list"></div>
+      <div class="section-label" id="upcoming-label" style="display:none;">Upcoming Sessions</div>
+      <div id="upcoming-list"></div>
+    </div>
+
+    <!-- TUTOR -->
+    <div class="view" id="view-tutor">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:18px;font-weight:700;">AI Tutor</div>
+        <div style="font-size:11px;color:var(--text3);">Ask anything — I'll research and explain clearly</div>
+      </div>
+      <div class="form-group">
+        <select class="input-field" id="tutor-context" style="margin-bottom:8px;">
+          <option value="">No context (general question)</option>
+        </select>
+      </div>
+      <div id="tutor-chat">
+        <div style="text-align:center;padding:30px 16px;color:var(--text3);">
+          <div style="font-size:36px;margin-bottom:10px;">🤖</div>
+          <div style="font-size:13px;line-height:1.7;">Ask me about your topics — definitions, concepts, essay structures, how to approach a study session...</div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="input-field" id="tutor-input" placeholder="Ask your AI tutor..." onkeydown="if(event.key==='Enter')sendTutor()" />
+        <button class="send-btn" onclick="sendTutor()">➤</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="view-settings">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Settings</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px;">Customize your study environment</div>
+
+      <div class="setting-card">
+        <div class="setting-title">🔔 Notifications</div>
+        <div class="setting-desc">Get reminders for upcoming study sessions, daily streaks, and deadlines. StudyOS will alert you at the right time.</div>
+        <button class="btn-gold-outline" onclick="setupNotifications()" id="notif-btn">Enable Notifications</button>
+        <div id="notif-status" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:'JetBrains Mono',monospace;"></div>
+        <div id="reminder-list" style="margin-top:12px;display:none;">
+          <div style="font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">SCHEDULED REMINDERS</div>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-title">📅 Study Days</div>
+        <div class="setting-desc">Which days are you available to study? This affects how your plan is generated.</div>
+        <div class="days-row" id="days-row"></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-title">⏱ Hours Per Study Day</div>
+        <div class="setting-desc">How many hours can you realistically study per day?</div>
+        <div class="hours-row">
+          <input type="range" min="1" max="8" id="hours-slider" oninput="updateHours(this.value)" />
+          <div class="hours-val" id="hours-val">3h</div>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-title">📆 Google Calendar</div>
+        <div class="setting-desc">Connect your Google Calendar to automatically import your timetable and block out classes, commute days, and events.</div>
+        <button class="btn-gold-outline" onclick="showNotif('🔗 Google Calendar sync will be available in the next update!')">Connect Calendar</button>
+      </div>
+
+      <div class="setting-card" style="border-color:rgba(224,112,96,0.15);">
+        <div class="setting-title" style="color:var(--danger);">⚠️ Reset Data</div>
+        <div class="setting-desc">Clear all subjects, sessions, and streak history. This cannot be undone.</div>
+        <button class="btn-outline" style="color:var(--danger);border-color:rgba(224,112,96,0.3);" onclick="resetAll()">Reset everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav id="nav">
+    <button class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+      <span>🏠</span><span>Home</span>
+    </button>
+    <button class="nav-item" id="nav-plan" onclick="switchView('plan')">
+      <span>📋</span><span>Plan</span>
+    </button>
+    <button class="nav-item" id="nav-tutor" onclick="switchView('tutor')">
+      <span>🤖</span><span>Tutor</span>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
+      <span>⚙️</span><span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Notification Bar -->
+  <div id="notif-bar"></div>
+
+  <!-- Install Banner -->
+  <div id="install-banner">
+    <span style="font-size:28px;">📲</span>
+    <div class="install-text">
+      <strong>Install StudyOS</strong>
+      Add to your home screen for the full app experience
+    </div>
+    <button class="btn-primary" style="width:auto;padding:9px 14px;font-size:12px;" onclick="installApp()">Install</button>
+    <button onclick="document.getElementById('install-banner').classList.remove('show')" style="background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;">✕</button>
+  </div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'studyos_v2';
+let deferredPrompt = null;
+
+const DEFAULT = {
+  subjects: [],
+  sessions: {},
+  streak: { current: 0, longest: 0, lastStudied: null, studiedDays: [] },
+  schedule: { mon:true, tue:true, wed:false, thu:true, fri:false, sat:true, sun:false },
+  hoursPerDay: 3,
+  notifEnabled: false,
+  notifIds: [],
+};
+
+function load() {
+  try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; }
+  catch { return { ...DEFAULT }; }
+}
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+
+let state = load();
+
+// ─── STUDY METHODS ────────────────────────────────────────────────────────────
+const METHODS = {
+  memorization: { name:"Spaced Repetition", desc:"Review at increasing intervals: 1 day → 3 → 7 → 14 days", icon:"🧠" },
+  concepts:     { name:"Feynman Technique", desc:"Explain each concept simply as if teaching a 12-year-old. Identify gaps.", icon:"💡" },
+  analysis:     { name:"Cornell Notes + Recall", desc:"Take structured notes, cover them, then recall without looking.", icon:"📝" },
+  problems:     { name:"Worked Examples → Practice", desc:"Study solved examples first, then attempt similar ones solo.", icon:"🔢" },
+  essay:        { name:"Outline → Draft → Refine", desc:"Build argument structure first. Split time 40% outline, 40% write, 20% refine.", icon:"✍️" },
+  reading:      { name:"SQ3R Method", desc:"Survey → Question → Read → Recite → Review for deep comprehension.", icon:"📖" },
+};
+
+function detectMethod(name, outline) {
+  const t = (name + ' ' + outline).toLowerCase();
+  if (/memoriz|vocab|dates|history|church|kings|timeline/.test(t)) return 'memorization';
+  if (/essay|writ|lit|cultural|discourse|rhetoric/.test(t)) return 'essay';
+  if (/math|calc|problem|equation|statistic/.test(t)) return 'problems';
+  if (/theor|concept|new testament|theology|doctrine|philo/.test(t)) return 'concepts';
+  if (/analys|criti|language|linguistic|semiot/.test(t)) return 'analysis';
+  return 'reading';
+}
+
+// ─── PLAN GENERATION ─────────────────────────────────────────────────────────
+function generatePlan(subject) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const deadline = new Date(subject.deadline + 'T00:00:00');
+  const dayNames = ['sun','mon','tue','wed','thu','fri','sat'];
+  const studyDays = [];
+  let d = new Date(today);
+  let safety = 0;
+  while (studyDays.length < 60 && safety < 90) {
+    if (state.schedule[dayNames[d.getDay()]]) studyDays.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 1);
+    if (d > deadline) break;
+    safety++;
+  }
+  if (studyDays.length === 0) studyDays.push(today.toISOString().split('T')[0]);
+
+  const topics = subject.outline.split('\n').map(t => t.trim()).filter(Boolean);
+  const methodKey = detectMethod(subject.name, subject.outline);
+  const method = METHODS[methodKey];
+  const sessions = [];
+
+  topics.forEach((topic, i) => {
+    const dayIdx = Math.min(Math.floor((i / topics.length) * studyDays.length), studyDays.length - 1);
+    sessions.push({
+      id: subject.id + '-' + i,
+      subjectId: subject.id,
+      topic,
+      date: studyDays[dayIdx],
+      duration: Math.max(1, Math.min(2, Math.ceil(state.hoursPerDay / Math.max(1, Math.ceil(topics.length / studyDays.length))))),
+      method: method.name,
+      methodDesc: method.desc,
+      methodIcon: method.icon,
+      done: false,
+    });
+  });
+  return sessions;
+}
+
+// ─── STREAK ──────────────────────────────────────────────────────────────────
+function markStudied() {
+  const today = new Date().toISOString().split('T')[0];
+  if (state.streak.studiedDays.includes(today)) return;
+  state.streak.studiedDays.push(today);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  if (state.streak.lastStudied === yStr || state.streak.lastStudied === today) {
+    state.streak.current++;
+  } else {
+    state.streak.current = 1;
+  }
+  state.streak.lastStudied = today;
+  state.streak.longest = Math.max(state.streak.current, state.streak.longest);
+  save();
+  document.getElementById('streak-display').textContent = state.streak.current;
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+async function setupNotifications() {
+  if (!('Notification' in window)) {
+    showNotif('❌ Notifications not supported on this browser.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    state.notifEnabled = true;
+    save();
+    document.getElementById('notif-btn').textContent = '✅ Notifications Active';
+    document.getElementById('notif-status').textContent = 'Enabled — you\'ll get study reminders';
+    document.getElementById('reminder-list').style.display = 'block';
+    scheduleAllReminders();
+    showNotif('🔔 Notifications enabled! You\'re all set.');
+    new Notification('StudyOS', {
+      body: '✅ Reminders are now active. You got this!',
+      icon: 'icon-192.png',
+    });
+  } else {
+    showNotif('⚠️ Permission denied. Enable in phone settings.');
+  }
+}
+
+function scheduleAllReminders() {
+  // Clear existing
+  state.notifIds.forEach(id => clearTimeout(id));
+  state.notifIds = [];
+
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const allSessions = Object.values(state.sessions).flat();
+
+  // Today's upcoming sessions
+  const todaySessions = allSessions.filter(s => s.date === today && !s.done);
+
+  // Schedule reminder now if there are sessions today
+  if (todaySessions.length > 0 && state.notifEnabled) {
+    const id = setTimeout(() => {
+      if (Notification.permission === 'granted') {
+        new Notification('📚 StudyOS — Study Time!', {
+          body: `You have ${todaySessions.length} session(s) today. First up: ${todaySessions[0].topic}`,
+          icon: 'icon-192.png',
+          requireInteraction: true,
+        });
+      }
+    }, 5000); // 5s after enabling, show first reminder
+    state.notifIds.push(id);
+  }
+
+  // Schedule morning reminder (8am) for each upcoming study day
+  allSessions.filter(s => s.date > today && !s.done).forEach(s => {
+    const sessionDate = new Date(s.date + 'T08:00:00');
+    const delay = sessionDate - now;
+    if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) { // Within 7 days
+      const id = setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification(`📅 Study Reminder — ${s.date}`, {
+            body: `Today: "${s.topic}" using ${s.method}`,
+            icon: 'icon-192.png',
+          });
+        }
+      }, delay);
+      state.notifIds.push(id);
+    }
+  });
+
+  // Daily streak reminder at 9pm
+  const ninepm = new Date();
+  ninepm.setHours(21, 0, 0, 0);
+  if (ninepm > now) {
+    const id = setTimeout(() => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (Notification.permission === 'granted' && !state.streak.studiedDays.includes(todayStr)) {
+        new Notification('🔥 Keep your streak alive!', {
+          body: `Don't break your ${state.streak.current}-day streak. Quick session before bed?`,
+          icon: 'icon-192.png',
+          requireInteraction: true,
+        });
+      }
+    }, ninepm - now);
+    state.notifIds.push(id);
+  }
+
+  // Deadline warnings
+  state.subjects.forEach(sub => {
+    const dLeft = daysUntil(sub.deadline);
+    if (dLeft === 1 && state.notifEnabled) {
+      setTimeout(() => {
+        new Notification(`⚠️ Tomorrow: ${sub.name}!`, {
+          body: `Your ${sub.type} for ${sub.name} is due tomorrow. Final prep time!`,
+          icon: 'icon-192.png',
+          requireInteraction: true,
+        });
+      }, 3000);
+    }
+  });
+
+  save();
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    console.log('SW registered');
+  }).catch(() => {});
+}
+
+// ─── INSTALL PROMPT ───────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => document.getElementById('install-banner').classList.add('show'), 2000);
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('install-banner').classList.remove('show');
+    });
+  }
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
+function showNotif(msg) {
+  const bar = document.getElementById('notif-bar');
+  bar.textContent = msg;
+  bar.classList.add('show');
+  setTimeout(() => bar.classList.remove('show'), 3200);
+}
+
+function daysUntil(iso) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(iso + 'T00:00:00');
+  return Math.ceil((d - today) / (1000*60*60*24));
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+}
+
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'plan') renderPlan();
+  if (name === 'settings') renderSettings();
+  if (name === 'tutor') renderTutorContext();
+}
+
+// ─── DASHBOARD RENDER ─────────────────────────────────────────────────────────
+function renderDashboard() {
+  const h = new Date().getHours();
+  document.getElementById('greeting-text').textContent =
+    (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening') + ' 👋';
+  document.getElementById('date-text').textContent =
+    new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('streak-display').textContent = state.streak.current;
+
+  const allSessions = Object.values(state.sessions).flat();
+  const done = allSessions.filter(s => s.done).length;
+  const total = allSessions.length;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  const nextDeadline = state.subjects.filter(s => daysUntil(s.deadline) >= 0).sort((a,b) => daysUntil(a.deadline)-daysUntil(b.deadline))[0];
+  const today = new Date().toISOString().split('T')[0];
+  const todaySessions = allSessions.filter(s => s.date === today);
+
+  // Stats
+  document.getElementById('stats-grid').innerHTML = [
+    { icon:'🔥', val: state.streak.current+'d', key:'Streak', sub:'Best: '+state.streak.longest+'d' },
+    { icon:'📊', val: pct+'%', key:'Progress', sub: done+'/'+total+' done' },
+    { icon:'📚', val: state.subjects.length, key:'Subjects', sub:'active' },
+    { icon:'⏰', val: nextDeadline ? daysUntil(nextDeadline.deadline)+'d' : '—', key:'Next Due', sub: nextDeadline?.name || 'none set' },
+  ].map(s => `
+    <div class="stat-card">
+      <div class="stat-icon">${s.icon}</div>
+      <div class="stat-val">${s.val}</div>
+      <div class="stat-key">${s.key}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+
+  // Progress
+  if (total > 0) {
+    document.getElementById('progress-wrap').innerHTML = `
+      <div class="progress-header"><span>Overall completion</span><span>${pct}%</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+  }
+
+  // Today's sessions
+  const todayEl = document.getElementById('today-sessions');
+  if (todaySessions.length === 0) {
+    todayEl.innerHTML = `<div class="empty-state" style="padding:24px 0;">
+      <div style="font-size:28px;margin-bottom:8px;">${state.subjects.length === 0 ? '📋' : '🌿'}</div>
+      <div style="font-size:13px;color:var(--text3);">${state.subjects.length === 0 ? 'Add a subject in the Plan tab to get started.' : 'No sessions today. Rest up!'}</div>
+    </div>`;
+  } else {
+    todayEl.innerHTML = todaySessions.map(s => `
+      <div class="session-item ${s.done ? 'done' : ''}" id="sess-${s.id}">
+        <div class="session-icon">${s.methodIcon}</div>
+        <div class="session-body">
+          <div class="session-topic ${s.done?'done':''}">${s.topic}</div>
+          <div class="session-method"><strong>${s.method}</strong> — ${s.methodDesc}</div>
+          <div class="session-meta">${state.subjects.find(sub=>sub.id===s.subjectId)?.name || ''} · ${s.duration}h</div>
+        </div>
+        ${!s.done ? `<button class="done-btn" onclick="markDone('${s.id}')">Done ✓</button>` : '<span style="font-size:20px;">✅</span>'}
+      </div>`).join('');
+  }
+
+  // Habit grid
+  const habitEl = document.getElementById('habit-grid');
+  const dayLabels = ['S','M','T','W','T','F','S'];
+  habitEl.innerHTML = Array.from({length:14}).map((_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13-i));
+    const str = d.toISOString().split('T')[0];
+    const isToday = str === today;
+    const studied = state.streak.studiedDays.includes(str);
+    const cls = studied ? 'studied' : isToday ? 'today' : 'missed';
+    return `<div class="habit-day ${cls}" title="${str}">
+      <div class="hd-num">${d.getDate()}</div>
+      <div class="hd-label">${dayLabels[d.getDay()]}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── MARK DONE ────────────────────────────────────────────────────────────────
+function markDone(sessionId) {
+  for (const key of Object.keys(state.sessions)) {
+    const idx = state.sessions[key].findIndex(s => s.id === sessionId);
+    if (idx >= 0) {
+      state.sessions[key][idx].done = true;
+      break;
+    }
+  }
+  markStudied();
+  save();
+  renderDashboard();
+  showNotif('✅ Session complete! Keep it up 💪');
+  if (state.notifEnabled) scheduleAllReminders();
+}
+
+// ─── ADD SUBJECT ──────────────────────────────────────────────────────────────
+function toggleAddForm() {
+  document.getElementById('add-form').classList.toggle('open');
+}
+
+function addSubject() {
+  const name = document.getElementById('f-name').value.trim();
+  const deadline = document.getElementById('f-date').value;
+  const type = document.getElementById('f-type').value;
+  const outline = document.getElementById('f-outline').value.trim();
+  if (!name || !deadline) { showNotif('⚠️ Please fill in name and deadline.'); return; }
+  const subject = { id: Date.now().toString(), name, deadline, type, outline: outline || name };
+  const sessions = generatePlan(subject);
+  state.subjects.push(subject);
+  state.sessions[subject.id] = sessions;
+  save();
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-outline').value = '';
+  document.getElementById('add-form').classList.remove('open');
+  renderPlan();
+  renderDashboard();
+  showNotif(`📚 "${name}" added! ${sessions.length} sessions generated.`);
+  if (state.notifEnabled) scheduleAllReminders();
+}
+
+function removeSubject(id) {
+  if (!confirm('Remove this subject and all its sessions?')) return;
+  state.subjects = state.subjects.filter(s => s.id !== id);
+  delete state.sessions[id];
+  save();
+  renderPlan();
+  renderDashboard();
+}
+
+// ─── PLAN RENDER ──────────────────────────────────────────────────────────────
+function renderPlan() {
+  const subEl = document.getElementById('subject-list');
+  const upEl = document.getElementById('upcoming-list');
+  const upLabel = document.getElementById('upcoming-label');
+
+  if (state.subjects.length === 0) {
+    subEl.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No subjects yet</div>
+      <div class="empty-sub">Tap "+ Add" to add a subject with your course outline. The AI will build your study plan automatically.</div>
+    </div>`;
+    upEl.innerHTML = '';
+    upLabel.style.display = 'none';
+    return;
+  }
+
+  subEl.innerHTML = state.subjects.map(sub => {
+    const sessions = state.sessions[sub.id] || [];
+    const done = sessions.filter(s => s.done).length;
+    const pct = sessions.length ? Math.round((done/sessions.length)*100) : 0;
+    const due = daysUntil(sub.deadline);
+    const dueCls = due <= 2 ? 'due-urgent' : due <= 5 ? 'due-soon' : '';
+    const methodKey = detectMethod(sub.name, sub.outline);
+    const method = METHODS[methodKey];
+    return `
+      <div class="subject-card">
+        <div class="subject-header">
+          <div>
+            <div class="subject-name">${sub.name}</div>
+            <div class="subject-meta">
+              <span class="${dueCls}">${due === 0 ? 'Due today!' : due < 0 ? 'Overdue' : due+' days left'}</span>
+              · ${sub.type} · ${done}/${sessions.length} done
+            </div>
+          </div>
+          <button class="remove-btn" onclick="removeSubject('${sub.id}')">✕</button>
+        </div>
+        <div class="method-badge">${method.icon} ${method.name}</div>
+        <div class="progress-track" style="margin-bottom:10px;">
+          <div class="progress-fill" style="width:${pct}%"></div>
+        </div>
+        ${sessions.slice(0,6).map(s => `
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:${s.done?'var(--text3)':'var(--text2)'};margin-bottom:5px;">
+            <span>${s.done ? '✅' : '○'}</span>
+            <span style="flex:1;text-decoration:${s.done?'line-through':'none'};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${s.topic}</span>
+            <span style="color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;">${formatDate(s.date)}</span>
+          </div>`).join('')}
+        ${sessions.length > 6 ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;">+${sessions.length-6} more sessions</div>` : ''}
+      </div>`;
+  }).join('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcoming = Object.values(state.sessions).flat()
+    .filter(s => !s.done && s.date >= today)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .slice(0, 12);
+
+  upLabel.style.display = upcoming.length > 0 ? 'block' : 'none';
+  upEl.innerHTML = upcoming.map(s => `
+    <div class="session-item" style="padding:10px 12px;">
+      <span style="font-size:18px;">${s.methodIcon}</span>
+      <div class="session-body" style="min-width:0;">
+        <div class="session-topic" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.topic}</div>
+        <div class="session-meta">${state.subjects.find(sub=>sub.id===s.subjectId)?.name || ''}</div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);white-space:nowrap;">${formatDate(s.date)}</span>
+      <button class="done-btn" style="padding:4px 10px;font-size:10px;" onclick="markDone('${s.id}')">Done</button>
+    </div>`).join('');
+}
+
+// ─── TUTOR ────────────────────────────────────────────────────────────────────
+function renderTutorContext() {
+  const sel = document.getElementById('tutor-context');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">No context (general question)</option>' +
+    state.subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  sel.value = current;
+}
+
+async function sendTutor() {
+  const input = document.getElementById('tutor-input');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+
+  const chat = document.getElementById('tutor-chat');
+  chat.innerHTML += `<div class="chat-bubble user"><div class="bubble-inner">${q}</div></div>`;
+
+  const thinking = document.createElement('div');
+  thinking.className = 'chat-bubble ai';
+  thinking.innerHTML = `<div class="bubble-inner thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  chat.appendChild(thinking);
+  chat.scrollTop = chat.scrollHeight;
+
+  const context = document.getElementById('tutor-context').value;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are StudyOS AI Tutor — a brilliant, clear academic assistant for a university student studying Literary & Cultural Studies and Theology. You explain concepts clearly, use examples, and keep answers focused. Format key terms in **bold**. End with a "Quick Summary:" line. Be encouraging but academic.`,
+        messages: [{ role: 'user', content: context ? `[Studying: ${context}]\n\n${q}` : q }]
+      })
+    });
+    const data = await resp.json();
+    const answer = data.content?.[0]?.text || 'Sorry, I couldn\'t get a response right now.';
+    thinking.innerHTML = `<div class="bubble-inner">${answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
+  } catch {
+    thinking.innerHTML = `<div class="bubble-inner" style="color:var(--danger);">Connection error. Make sure you're online and try again.</div>`;
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function renderSettings() {
+  // Days
+  const days = [['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+  document.getElementById('days-row').innerHTML = days.map(([k,l]) =>
+    `<button class="day-btn ${state.schedule[k]?'on':''}" onclick="toggleDay('${k}',this)">${l}</button>`
+  ).join('');
+
+  // Hours
+  const slider = document.getElementById('hours-slider');
+  slider.value = state.hoursPerDay;
+  document.getElementById('hours-val').textContent = state.hoursPerDay + 'h';
+
+  // Notif status
+  if (state.notifEnabled && Notification.permission === 'granted') {
+    document.getElementById('notif-btn').textContent = '✅ Notifications Active';
+    document.getElementById('notif-status').textContent = 'Enabled — reminders are scheduled';
+    document.getElementById('reminder-list').style.display = 'block';
+  }
+}
+
+function toggleDay(key, btn) {
+  state.schedule[key] = !state.schedule[key];
+  btn.classList.toggle('on', state.schedule[key]);
+  save();
+}
+
+function updateHours(val) {
+  state.hoursPerDay = Number(val);
+  document.getElementById('hours-val').textContent = val + 'h';
+  save();
+}
+
+function resetAll() {
+  if (confirm('Reset ALL data? This cannot be undone.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = { ...DEFAULT };
+    save();
+    renderDashboard();
+    showNotif('Data cleared.');
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderDashboard();
+if (state.notifEnabled && Notification.permission === 'granted') {
+  scheduleAllReminders();
+}
+
+// Check streak on load (reset if missed day)
+(function checkStreak() {
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  const last = state.streak.lastStudied;
+  if (last && last !== today && last !== yStr && state.streak.current > 0) {
+    state.streak.current = 0;
+    save();
+  }
+})();
+</script>
+</body>
+</html>
