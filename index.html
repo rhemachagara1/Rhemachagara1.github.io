@@ -1342,7 +1342,7 @@ async function callAI(messages, system, maxTokens=800) {
   const r = await fetch(API_PROXY+'/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ model:'gemini-1.5-flash', max_tokens:maxTokens, system, messages }),
+    body:JSON.stringify({ model:'gemini-2.5-flash', max_tokens:maxTokens, system, messages }),
   });
   if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.error?.message||`HTTP ${r.status}`); }
   const d = await r.json();
@@ -1429,9 +1429,9 @@ async function loadDYK() {
   const ctx   = state.courses.slice(0,3).map(c=>c.outline).join(' ').substring(0,500);
   try {
     const text = await callAI(
-      [{ role:'user', content:`Courses: ${names||'general academics'}. Context: ${ctx}. Give ONE surprising academic "Did You Know" fact directly tied to these subjects. Must be genuinely interesting and memorable. 2-3 sentences max. No preamble, just the fact.` }],
-      'You generate one fascinating, accurate academic fact per request. No bullet points. No introductions. Just the fact directly.',
-      220
+      [{ role:'user', content:`My university courses: ${names||'general academics'}. Give me ONE surprising, genuinely interesting academic "Did You Know" fact related to these subjects. Write 2-3 complete sentences. Start directly with the fact — no preamble like "Did you know" or "Here is a fact".` }],
+      'You write fascinating, accurate, complete academic facts. Always write full complete sentences. Never truncate. Never use bullet points.',
+      500
     );
     state.dykToday = { date:today, text }; save();
     document.getElementById('dyk-content').innerHTML = `<div class="dyk-text">${esc(text)}</div>`;
@@ -1839,45 +1839,18 @@ async function loadTopicDetail(course, topic) {
     return;
   }
   try {
-    const userTexts = course.texts ? `The course recommends these texts: ${course.texts}` : '';
-    const prompt = `You are a university academic tutor preparing a detailed study note for a student.
+    const userTexts = course.texts ? `Course texts: ${course.texts.substring(0,300)}` : '';
+    const prompt = `Academic tutor task. Course: ${course.name} (${course.code}). Topic: "${topic}". ${userTexts}
 
-Course: ${course.name} (${course.code})
-Topic: ${topic}
-Course outline context: ${course.outline.substring(0,600)}
-${userTexts}
+Return ONLY raw JSON — no markdown, no backticks, no extra text before or after. Use this exact structure:
+{"overview":"8 to 10 sentences explaining this topic: what it is, its academic significance, historical context, how it links to the broader course, and key takeaways for a student.","concepts":["Term: 2-sentence explanation.","Term: 2-sentence explanation.","Term: 2-sentence explanation.","Term: 2-sentence explanation.","Term: 2-sentence explanation."],"readings":[{"title":"Book Title","author":"Last, First (Year)","pages":"pp. 45-67","note":"One sentence on what this covers for this topic."},{"title":"Book Title","author":"Last, First (Year)","pages":"Chapter 3, pp. 88-102","note":"One sentence."}],"examTip":"One sentence on what examiners focus on for this topic."}
 
-Return ONLY a valid JSON object — no markdown fences, no preamble, nothing else — in this exact shape:
-{
-  "overview": "A thorough, well-written explanation of this topic in 8-10 sentences. Cover what the topic is, its academic significance, its origins or historical context if relevant, how it connects to other ideas in the course, and what students should walk away understanding. Write in clear, engaging academic prose — not bullet points.",
-  "keyConcepts": [
-    "Concept name: A 2-3 sentence explanation of this concept and why it matters for this topic.",
-    "Concept name: ...",
-    "Concept name: ...",
-    "Concept name: ...",
-    "Concept name: ..."
-  ],
-  "readings": [
-    {
-      "title": "Full book or article title",
-      "author": "Author Last, First (Year)",
-      "pages": "Specific pages e.g. pp. 45-67, or Chapter 3 (pp. 88-102)",
-      "relevance": "One sentence on exactly what this reading covers about this specific topic and what the student will gain from it."
-    }
-  ],
-  "examTip": "One practical sentence on what examiners typically focus on for this topic — key arguments to know, common essay angles, or easily confused distinctions."
-}
-
-Rules:
-- readings: list 3-5 real, well-known academic books or articles that genuinely cover this topic. Prioritise texts already listed in the course if provided. Add canonical works scholars use for this topic. Give SPECIFIC page ranges or chapter numbers where this topic is discussed — not just "Chapter 1" but real, plausible pages.
-- keyConcepts: exactly 5 items, each starting with the concept name followed by a colon.
-- overview: minimum 8 sentences. Dense but readable.
-- examTip: concise, practical, actionable.`;
+Rules: overview must be 8-10 full sentences of dense academic prose. concepts must have exactly 5 items each starting with a term name and colon. readings must have 3-4 real published books with realistic specific page numbers. examTip must be one concise sentence. Output nothing except the JSON object.`;
 
     const text = await callAI(
       [{ role:'user', content: prompt }],
-      'You are a precise academic assistant. Return ONLY valid JSON. No markdown. No extra text.',
-      1800
+      'Return only raw valid JSON. No markdown fences. No text before or after the JSON object.',
+      2000
     );
 
     let parsed;
@@ -1911,10 +1884,10 @@ Rules:
         <div class="ts-overview">${overviewHTML}</div>
       </div>
 
-      ${parsed.keyConcepts?.length ? `
+      ${(parsed.concepts||parsed.keyConcepts||[]).length ? `
       <div class="ts-section">
         <div class="ts-section-title">Key Concepts</div>
-        ${parsed.keyConcepts.map(k => {
+        ${(parsed.concepts||parsed.keyConcepts||[]).map(k => {
           const colonIdx = k.indexOf(':');
           const name = colonIdx > -1 ? k.substring(0, colonIdx).trim() : '';
           const body = colonIdx > -1 ? k.substring(colonIdx+1).trim() : k;
@@ -2054,27 +2027,19 @@ async function processOutlineFile(file) {
     sub.textContent   = 'Reading topics, texts and course info...';
 
     // Call AI to extract structured info
-    const prompt = `You are reading a university course outline document. Extract the following information and return ONLY valid JSON with no markdown or preamble:
+    const prompt = `Extract information from this university course outline. Return ONLY raw JSON, no markdown, no backticks, nothing else.
 
-{
-  "courseCode": "e.g. LCS221 (or empty string if not found)",
-  "courseName": "full course name (or empty string)",
-  "topics": ["topic 1", "topic 2", "topic 3", ...],
-  "recommendedTexts": ["Author, Title (Year)", "Author, Title (Year)", ...]
-}
+Use this exact structure: {"courseCode":"e.g. LCS221 or empty","courseName":"full course name or empty","topics":["topic 1","topic 2"],"recommendedTexts":["Author, Title (Year)"]}
 
-Rules:
-- topics: extract every lecture topic, week topic, or content heading listed. Each topic should be a concise phrase (not a full sentence). Maximum 30 topics.
-- recommendedTexts: extract every book, article or reading recommended. Format as "Author, Title (Year)" where available.
-- If the document doesn't contain certain fields, return empty arrays/strings.
+Rules: topics = every lecture/week topic or content heading, max 25, short phrases only. recommendedTexts = every book/article mentioned. Empty array if none found. Output ONLY the JSON object.
 
-DOCUMENT TEXT:
-${text.substring(0, 6000)}`;
+DOCUMENT:
+${text.substring(0, 5000)}`;
 
     const response = await callAI(
       [{ role:'user', content: prompt }],
-      'You extract structured academic information from course outline documents. Return only valid JSON.',
-      1000
+      'You extract structured academic information from course outline documents. Return only raw valid JSON with no markdown fences.',
+      1500
     );
 
     let parsed;
@@ -2110,8 +2075,9 @@ ${text.substring(0, 6000)}`;
 }
 
 async function extractPDF(file) {
-  // pdf.js
-  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  // pdf.js — try all possible global names the CDN might use
+  const pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'] || window.PDFJS;
+  if (!pdfjsLib || !pdfjsLib.getDocument) throw new Error('PDF reader not ready. Wait a moment and try again.');
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const arrayBuffer = await file.arrayBuffer();
   const pdf   = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
