@@ -11,6 +11,8 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <title>StudyOS — Academic Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -632,6 +634,25 @@ select.input-field{cursor:pointer;}
 .install-text{flex:1;font-size:var(--fs-sm);line-height:1.5;}
 .install-text strong{display:block;color:var(--blue);font-size:var(--fs-md);margin-bottom:2px;}
 
+
+/* ── FILE UPLOAD ZONE ─────────────────────────────── */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:var(--radius-sm);
+  padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;
+  background:var(--surface);margin-bottom:14px;position:relative;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-light);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-zone-icon{margin-bottom:8px;}
+.upload-zone-icon svg{width:28px;height:28px;stroke:var(--blue);fill:none;stroke-width:1.6;}
+.upload-zone-title{font-size:var(--fs-sm);font-weight:700;color:var(--text);margin-bottom:3px;}
+.upload-zone-sub{font-size:var(--fs-xs);color:var(--text3);}
+.upload-zone.done{border-color:var(--success);border-style:solid;background:rgba(34,197,94,0.07);}
+.upload-zone.done .upload-zone-icon svg{stroke:var(--success);}
+.upload-zone.loading{border-color:var(--blue);border-style:solid;background:var(--blue-light);}
+.upload-or{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);color:var(--text3);margin-bottom:14px;}
+.upload-or::before,.upload-or::after{content:'';flex:1;height:1px;background:var(--border);}
+
 /* ── RESPONSIVE ───────────────────────────────────── */
 @media(min-width:600px){
   .view{max-width:640px;margin:0 auto;}
@@ -977,6 +998,22 @@ select.input-field{cursor:pointer;}
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">Add New Course</div>
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="upload-zone"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="handleFileDrop(event)">
+      <input type="file" id="outline-file" accept=".pdf,.docx,.doc,.txt" onchange="handleFileSelect(event)"/>
+      <div class="upload-zone-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
+      </div>
+      <div class="upload-zone-title" id="upload-title">Upload Course Outline</div>
+      <div class="upload-zone-sub" id="upload-sub">PDF, DOCX or TXT — AI will extract everything automatically</div>
+    </div>
+
+    <div class="upload-or">or fill in manually</div>
+
     <div class="form-row">
       <div class="form-group" style="margin:0;">
         <label class="form-label">Course Code</label>
@@ -1000,11 +1037,11 @@ select.input-field{cursor:pointer;}
     </div>
     <div class="form-group">
       <label class="form-label">Topics / Course Outline (one per line)</label>
-      <textarea class="input-field" id="c-outline" rows="7" placeholder="Paste your outline here:&#10;&#10;Introduction to literary theory&#10;Structuralism and semiotics&#10;Post-colonial theory&#10;Feminist literary criticism&#10;Discourse analysis"></textarea>
+      <textarea class="input-field" id="c-outline" rows="6" placeholder="Paste your outline here, or upload a file above to auto-fill:&#10;&#10;Introduction to literary theory&#10;Structuralism and semiotics&#10;Post-colonial theory&#10;Feminist literary criticism"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Recommended Texts (one per line)</label>
-      <textarea class="input-field" id="c-texts" rows="4" placeholder="e.g.&#10;Achebe, Things Fall Apart (1958)&#10;Ngugi, Decolonising the Mind (1986)&#10;Spivak, Can the Subaltern Speak? (1988)"></textarea>
+      <textarea class="input-field" id="c-texts" rows="3" placeholder="e.g.&#10;Achebe, Things Fall Apart (1958)&#10;Ngugi, Decolonising the Mind (1986)"></textarea>
     </div>
     <div class="form-btns">
       <button class="btn-primary" style="flex:1;" onclick="addCourse()">Add Course</button>
@@ -1747,6 +1784,149 @@ async function sendTutor() {
 document.getElementById('tutor-input').addEventListener('keydown', e=>{
   if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendTutor(); }
 });
+
+
+// ── FILE UPLOAD & AI EXTRACTION ───────────────────────
+async function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer?.files?.[0];
+  if (file) await processOutlineFile(file);
+}
+async function handleFileSelect(e) {
+  const file = e.target.files?.[0];
+  if (file) await processOutlineFile(file);
+}
+
+async function processOutlineFile(file) {
+  const zone  = document.getElementById('upload-zone');
+  const title = document.getElementById('upload-title');
+  const sub   = document.getElementById('upload-sub');
+
+  // Show loading state
+  zone.classList.add('loading');
+  title.textContent = 'Reading file...';
+  sub.textContent   = file.name;
+
+  try {
+    let text = '';
+
+    if (file.name.endsWith('.pdf')) {
+      text = await extractPDF(file);
+    } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+      text = await extractDOCX(file);
+    } else if (file.name.endsWith('.txt')) {
+      text = await file.text();
+    } else {
+      showNotif('⚠️ Please upload a PDF, DOCX or TXT file.');
+      zone.classList.remove('loading');
+      title.textContent = 'Upload Course Outline';
+      sub.textContent   = 'PDF, DOCX or TXT — AI will extract everything automatically';
+      return;
+    }
+
+    if (!text || text.trim().length < 50) {
+      showNotif('⚠️ Could not read enough text from this file. Try a different format.');
+      zone.classList.remove('loading');
+      title.textContent = 'Upload Course Outline';
+      sub.textContent   = 'PDF, DOCX or TXT — AI will extract everything automatically';
+      return;
+    }
+
+    title.textContent = 'Extracting with AI...';
+    sub.textContent   = 'Reading topics, texts and course info...';
+
+    // Call AI to extract structured info
+    const prompt = `You are reading a university course outline document. Extract the following information and return ONLY valid JSON with no markdown or preamble:
+
+{
+  "courseCode": "e.g. LCS221 (or empty string if not found)",
+  "courseName": "full course name (or empty string)",
+  "topics": ["topic 1", "topic 2", "topic 3", ...],
+  "recommendedTexts": ["Author, Title (Year)", "Author, Title (Year)", ...]
+}
+
+Rules:
+- topics: extract every lecture topic, week topic, or content heading listed. Each topic should be a concise phrase (not a full sentence). Maximum 30 topics.
+- recommendedTexts: extract every book, article or reading recommended. Format as "Author, Title (Year)" where available.
+- If the document doesn't contain certain fields, return empty arrays/strings.
+
+DOCUMENT TEXT:
+${text.substring(0, 6000)}`;
+
+    const response = await callAI(
+      [{ role:'user', content: prompt }],
+      'You extract structured academic information from course outline documents. Return only valid JSON.',
+      1000
+    );
+
+    let parsed;
+    try {
+      parsed = JSON.parse(response.replace(/```json|```/g,'').trim());
+    } catch {
+      showNotif('⚠️ AI could not parse this document. Try a cleaner PDF or paste manually.');
+      zone.classList.remove('loading');
+      title.textContent = 'Upload Course Outline';
+      sub.textContent   = 'PDF, DOCX or TXT — AI will extract everything automatically';
+      return;
+    }
+
+    // Fill in the form fields
+    if (parsed.courseCode) document.getElementById('c-code').value = parsed.courseCode;
+    if (parsed.courseName) document.getElementById('c-name').value = parsed.courseName;
+    if (parsed.topics?.length) document.getElementById('c-outline').value = parsed.topics.join('\n');
+    if (parsed.recommendedTexts?.length) document.getElementById('c-texts').value = parsed.recommendedTexts.join('\n');
+
+    // Success state
+    zone.classList.remove('loading');
+    zone.classList.add('done');
+    title.textContent = '✓ Extracted successfully!';
+    sub.textContent   = `${parsed.topics?.length||0} topics · ${parsed.recommendedTexts?.length||0} texts · Review and confirm below`;
+    showNotif(`✅ Extracted ${parsed.topics?.length||0} topics from ${file.name}`);
+
+  } catch(err) {
+    zone.classList.remove('loading');
+    title.textContent = 'Upload failed — try again';
+    sub.textContent   = err.message || 'Unknown error';
+    showNotif('❌ Could not process file. Check your connection.');
+  }
+}
+
+async function extractPDF(file) {
+  // pdf.js
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf   = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
+    const page    = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+  return fullText;
+}
+
+async function extractDOCX(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+// Reset upload zone when modal closes
+const _origCloseAddCourse = closeAddCourse;
+closeAddCourse = function() {
+  _origCloseAddCourse();
+  const zone  = document.getElementById('upload-zone');
+  const title = document.getElementById('upload-title');
+  const sub   = document.getElementById('upload-sub');
+  if (zone)  { zone.classList.remove('loading','done','drag'); }
+  if (title) title.textContent = 'Upload Course Outline';
+  if (sub)   sub.textContent   = 'PDF, DOCX or TXT — AI will extract everything automatically';
+  const fi = document.getElementById('outline-file');
+  if (fi) fi.value = '';
+};
 
 // ── SETTINGS ──────────────────────────────────────────
 function renderSettings() {
