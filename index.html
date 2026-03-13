@@ -1,1184 +1,1680 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
-  <meta name="theme-color" content="#b48c50" id="theme-meta"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="StudyOS"/>
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="apple-touch-icon" href="icon-192.png"/>
-  <title>StudyOS</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
+<meta name="theme-color" content="#1a73e8" id="theme-meta"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="StudyOS"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>StudyOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <!-- Lucide icons CDN -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <style>
-  /* ── TOKENS ─────────────────────────────────────────────────────────── */
-  :root {
-    --gold:        #c49a52;
-    --gold-dim:    #8a6a32;
-    --gold-glow:   rgba(196,154,82,0.18);
-    --gold-border: rgba(196,154,82,0.35);
-    --danger:      #e07060;
-    --success:     #5dba80;
-    --radius:      14px;
-    --radius-sm:   8px;
-    --safe-t: env(safe-area-inset-top,0px);
-    --safe-b: env(safe-area-inset-bottom,0px);
-    --safe-l: env(safe-area-inset-left,0px);
-    --safe-r: env(safe-area-inset-right,0px);
-    /* fluid type scale */
-    --fs-xs:  clamp(9px,  2vw, 11px);
-    --fs-sm:  clamp(11px, 2.5vw, 13px);
-    --fs-md:  clamp(13px, 3vw, 15px);
-    --fs-lg:  clamp(16px, 4vw, 20px);
-    --fs-xl:  clamp(20px, 5vw, 26px);
-  }
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDuLsJquE8gvhP7S0yqNAFIaC6S6cWaB5U",
+    authDomain:        "studyos-b31e9.firebaseapp.com",
+    projectId:         "studyos-b31e9",
+    storageBucket:     "studyos-b31e9.firebasestorage.app",
+    messagingSenderId: "313559266417",
+    appId:             "1:313559266417:web:c2264abc552c0f2d5a17d0",
+    measurementId:     "G-456093X44B"
+  };
 
-  /* ── DARK THEME (default) ────────────────────────────────────────────── */
-  [data-theme="dark"] {
-    --bg:      #0b0b11;
-    --bg2:     #111119;
-    --bg3:     #191924;
-    --bg4:     #202030;
-    --surface: rgba(255,255,255,0.03);
-    --text:    #ede9e0;
-    --text2:   #9994a0;
-    --text3:   #504e5a;
-    --border:  rgba(255,255,255,0.07);
-    --shadow:  0 8px 32px rgba(0,0,0,0.55);
-  }
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-  /* ── LIGHT THEME ─────────────────────────────────────────────────────── */
-  [data-theme="light"] {
-    --bg:      #f5f2ec;
-    --bg2:     #eeebe3;
-    --bg3:     #e4e0d6;
-    --bg4:     #d8d4c8;
-    --surface: rgba(0,0,0,0.03);
-    --text:    #1a1814;
-    --text2:   #5a5650;
-    --text3:   #9a9690;
-    --border:  rgba(0,0,0,0.09);
-    --shadow:  0 8px 32px rgba(0,0,0,0.12);
-  }
-  [data-theme="light"] #header { background: rgba(245,242,236,0.95); }
-  [data-theme="light"] #nav    { background: var(--bg2); }
-  [data-theme="light"] .input-field { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); }
-  [data-theme="light"] .progress-track { background: rgba(0,0,0,0.08); }
-  [data-theme="light"] .habit-day.missed { background: rgba(0,0,0,0.05); }
-  [data-theme="light"] #notif-bar { background: var(--bg3); }
+  // Expose to global so the rest of the app can use them
+  window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+                 signOut, onAuthStateChanged, doc, setDoc, getDoc, onSnapshot };
+</script>
 
-  /* ── RESET ───────────────────────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
-  html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Cormorant Garamond',Georgia,serif; }
-  body { display:flex; flex-direction:column; }
-  ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:3px; }
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Psychology-informed palette
+   Dark:  Deep navy (#0d1117) + Vivid blue (#1a73e8) + Amber (#f59e0b)
+          → Blue = focus, trust, calm | Amber = energy, warmth, motivation
+   Light: Clean white + same accents for high contrast
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Brand */
+  --blue:        #1a73e8;
+  --blue-dark:   #1557b0;
+  --blue-light:  rgba(26,115,232,0.12);
+  --blue-border: rgba(26,115,232,0.3);
+  --amber:       #f59e0b;
+  --amber-dark:  #b45309;
+  --amber-light: rgba(245,158,11,0.12);
+  --amber-border:rgba(245,158,11,0.3);
+  --purple:      #7c3aed;
+  --teal:        #0d9488;
+  --danger:      #ef4444;
+  --success:     #22c55e;
+  /* Layout */
+  --radius:    16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+  --safe-t: env(safe-area-inset-top,0px);
+  --safe-b: env(safe-area-inset-bottom,0px);
+  --safe-l: env(safe-area-inset-left,0px);
+  --safe-r: env(safe-area-inset-right,0px);
+  /* Fluid type */
+  --fs-xs:  clamp(10px, 2.2vw, 12px);
+  --fs-sm:  clamp(12px, 2.8vw, 14px);
+  --fs-md:  clamp(14px, 3.2vw, 16px);
+  --fs-lg:  clamp(18px, 4.5vw, 22px);
+  --fs-xl:  clamp(22px, 5.5vw, 28px);
+  --fs-2xl: clamp(28px, 7vw, 36px);
+}
 
-  /* ── LAYOUT ──────────────────────────────────────────────────────────── */
-  #header {
-    padding: calc(var(--safe-t) + 12px) calc(var(--safe-r) + 16px) 12px calc(var(--safe-l) + 16px);
-    background: rgba(11,11,17,0.96);
-    backdrop-filter: blur(16px) saturate(1.4);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    flex-shrink: 0; z-index:100; position:relative;
-    transition: background 0.3s;
-  }
-  #main { flex:1; overflow-y:auto; overscroll-behavior:contain; position:relative; }
-  .view { display:none; padding: clamp(12px,4vw,20px); min-height:100%; }
-  .view.active { display:block; animation: fadeUp 0.28s ease both; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+/* ── DARK THEME ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #1c2333;
+  --bg4:     #243048;
+  --surface: rgba(255,255,255,0.04);
+  --surface2:rgba(255,255,255,0.07);
+  --text:    #f0f6fc;
+  --text2:   #8b949e;
+  --text3:   #484f58;
+  --border:  rgba(255,255,255,0.09);
+  --shadow:  0 8px 32px rgba(0,0,0,0.6);
+  --header-bg: rgba(13,17,23,0.95);
+}
 
-  /* ── HEADER ELEMENTS ─────────────────────────────────────────────────── */
-  .logo {
-    display:flex; align-items:center; gap:10px; cursor:pointer;
-    padding: 4px 8px 4px 4px; border-radius:10px; margin:-4px;
-    transition: background 0.18s;
-  }
-  .logo:active { background: var(--gold-glow); }
-  .logo-icon {
-    width:36px; height:36px; border-radius:10px;
-    background: linear-gradient(135deg,var(--gold),var(--gold-dim));
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 2px 12px rgba(196,154,82,0.3);
-  }
-  .logo-icon svg { width:18px; height:18px; stroke:#0b0b11; stroke-width:2.2; fill:none; }
-  .logo-text { line-height:1.1; }
-  .logo-title { font-size:var(--fs-md); font-weight:700; letter-spacing:2.5px; color:var(--text); }
-  .logo-sub   { font-size:var(--fs-xs); color:var(--text3); letter-spacing:2.5px; font-family:'DM Mono',monospace; }
+/* ── LIGHT THEME ────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:      #ffffff;
+  --bg2:     #f6f8fa;
+  --bg3:     #eaeef2;
+  --bg4:     #d0d7de;
+  --surface: rgba(0,0,0,0.03);
+  --surface2:rgba(0,0,0,0.06);
+  --text:    #1a1f2e;
+  --text2:   #57606a;
+  --text3:   #afb8c1;
+  --border:  rgba(0,0,0,0.1);
+  --shadow:  0 4px 20px rgba(0,0,0,0.1);
+  --header-bg: rgba(255,255,255,0.95);
+}
 
-  /* header right cluster */
-  .header-right { display:flex; align-items:center; gap:10px; }
-  .streak-pill {
-    display:flex; align-items:center; gap:5px;
-    background:var(--gold-glow); border:1px solid var(--gold-border);
-    border-radius:20px; padding:5px 10px;
-    font-family:'DM Mono',monospace;
-  }
-  .streak-pill svg { width:14px; height:14px; }
-  .streak-num { color:var(--gold); font-weight:700; font-size:var(--fs-sm); }
-  .streak-lbl { color:var(--text3); font-size:var(--fs-xs); }
+/* ── RESET ──────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+body{display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
 
-  /* theme toggle */
-  .theme-toggle {
-    width:36px; height:36px; border-radius:10px; border:1px solid var(--border);
-    background:var(--surface); display:flex; align-items:center; justify-content:center;
-    cursor:pointer; transition: all 0.2s;
-  }
-  .theme-toggle:active { background:var(--gold-glow); border-color:var(--gold-border); }
-  .theme-toggle svg { width:16px; height:16px; stroke:var(--text2); fill:none; }
+/* ── AUTH SCREEN ────────────────────────────────────────────────────────── */
+#auth-screen {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100dvh;padding:24px;background:var(--bg);
+  background-image: radial-gradient(ellipse at 30% 20%, rgba(26,115,232,0.12) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 80%, rgba(245,158,11,0.08) 0%, transparent 50%);
+}
+#auth-screen.hidden{display:none;}
+.auth-logo{text-align:center;margin-bottom:40px;}
+.auth-logo-icon{
+  width:72px;height:72px;border-radius:20px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dark));
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+  box-shadow:0 8px 32px rgba(26,115,232,0.4);
+}
+.auth-logo-icon svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:2;}
+.auth-title{font-size:var(--fs-2xl);font-weight:800;letter-spacing:-0.5px;}
+.auth-sub{font-size:var(--fs-sm);color:var(--text2);margin-top:4px;}
+.auth-card{
+  width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);
+}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--bg3);border-radius:var(--radius-sm);padding:4px;}
+.auth-tab{
+  flex:1;padding:8px;text-align:center;border:none;background:transparent;
+  color:var(--text2);cursor:pointer;border-radius:var(--radius-xs);
+  font-size:var(--fs-sm);font-weight:600;transition:all 0.2s;font-family:inherit;
+}
+.auth-tab.active{background:var(--bg);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+.auth-form{display:flex;flex-direction:column;gap:12px;}
+.auth-form.hidden{display:none;}
+.auth-error{
+  font-size:var(--fs-xs);color:var(--danger);background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-xs);
+  padding:8px 12px;display:none;
+}
+.auth-error.show{display:block;}
+.auth-divider{text-align:center;font-size:var(--fs-xs);color:var(--text3);margin:4px 0;}
 
-  /* online indicator */
-  .online-dot {
-    width:8px; height:8px; border-radius:50%; background:var(--success);
-    box-shadow: 0 0 6px var(--success); transition: background 0.3s;
-  }
-  .online-dot.offline { background:var(--danger); box-shadow:0 0 6px var(--danger); }
+/* ── APP SCREEN ─────────────────────────────────────────────────────────── */
+#app-screen{display:flex;flex-direction:column;height:100dvh;}
+#app-screen.hidden{display:none;}
 
-  /* ── BOTTOM NAV ──────────────────────────────────────────────────────── */
-  #nav {
-    background: var(--bg2); border-top:1px solid var(--border);
-    padding-bottom:var(--safe-b); display:flex; flex-shrink:0; z-index:100;
-    position:relative;
-  }
-  .nav-item {
-    flex:1; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; padding:10px 4px; cursor:pointer;
-    border:none; background:transparent; color:var(--text3);
-    gap:3px; transition:color 0.2s; position:relative;
-    font-family:'DM Mono',monospace;
-  }
-  .nav-item svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; transition:stroke 0.2s; }
-  .nav-item span { font-size:var(--fs-xs); letter-spacing:1px; text-transform:uppercase; }
-  .nav-item.active { color:var(--gold); }
-  .nav-item.active::before {
-    content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
-    width:24px; height:2px; background:var(--gold); border-radius:0 0 3px 3px;
-  }
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+#header{
+  padding:calc(var(--safe-t) + 12px) calc(var(--safe-r) + 16px) 12px calc(var(--safe-l) + 16px);
+  background:var(--header-bg);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:100;transition:background 0.3s;
+}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 8px 4px 4px;border-radius:12px;margin:-4px;transition:background 0.18s;}
+.logo:active{background:var(--blue-light);}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(26,115,232,0.35);}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;}
+.logo-title{font-size:15px;font-weight:800;letter-spacing:-0.3px;color:var(--text);}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:8px;}
+.h-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;}
+.h-btn:active{background:var(--blue-light);border-color:var(--blue-border);}
+.h-btn svg{width:16px;height:16px;stroke:var(--text2);fill:none;stroke-width:1.8;}
+.streak-chip{display:flex;align-items:center;gap:5px;background:var(--amber-light);border:1px solid var(--amber-border);border-radius:20px;padding:5px 10px;}
+.streak-chip svg{width:14px;height:14px;stroke:var(--amber);fill:none;stroke-width:1.8;}
+.streak-num{color:var(--amber);font-weight:700;font-size:13px;}
+.streak-lbl{color:var(--text3);font-size:10px;font-family:'JetBrains Mono',monospace;}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 5px var(--success);transition:all 0.3s;}
+.online-dot.offline{background:var(--danger);box-shadow:0 0 5px var(--danger);}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;cursor:pointer;border:2px solid var(--border);}
 
-  /* ── CARDS / SURFACES ────────────────────────────────────────────────── */
-  .card {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius); padding:clamp(12px,3.5vw,16px);
-    margin-bottom:10px; transition:border-color 0.2s;
-  }
-  .card:active { border-color:var(--gold-border); }
+/* ── MAIN + VIEWS ───────────────────────────────────────────────────────── */
+#main{flex:1;overflow-y:auto;overscroll-behavior:contain;}
+.view{display:none;padding:clamp(14px,4vw,20px);padding-bottom:20px;}
+.view.active{display:block;animation:fadeUp 0.26s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ── SECTION LABEL ───────────────────────────────────────────────────── */
-  .section-label {
-    font-family:'DM Mono',monospace; font-size:var(--fs-xs);
-    letter-spacing:2.5px; color:var(--text3); text-transform:uppercase;
-    margin:20px 0 10px;
-  }
-  .section-label:first-child { margin-top:0; }
+/* ── BOTTOM NAV ─────────────────────────────────────────────────────────── */
+#nav{background:var(--bg2);border-top:1px solid var(--border);padding-bottom:var(--safe-b);display:flex;flex-shrink:0;z-index:100;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;cursor:pointer;border:none;background:transparent;color:var(--text3);gap:3px;transition:color 0.18s;position:relative;font-family:inherit;}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;transition:all 0.18s;}
+.nav-btn span{font-size:10px;letter-spacing:0.5px;font-weight:500;}
+.nav-btn.active{color:var(--blue);}
+.nav-btn.active svg{stroke:var(--blue);}
+.nav-btn.active::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2.5px;background:var(--blue);border-radius:0 0 3px 3px;}
 
-  /* ── STATS ───────────────────────────────────────────────────────────── */
-  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
-  .stat-card {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius); padding:clamp(12px,3vw,16px);
-    display:flex; flex-direction:column; gap:4px;
-  }
-  .stat-icon { margin-bottom:2px; }
-  .stat-icon svg { width:20px; height:20px; stroke:var(--gold); fill:none; stroke-width:1.8; }
-  .stat-val { font-size:var(--fs-xl); font-weight:700; color:var(--gold); line-height:1; }
-  .stat-key { font-size:var(--fs-xs); color:var(--text3); font-family:'DM Mono',monospace; letter-spacing:1.5px; text-transform:uppercase; }
-  .stat-sub { font-size:var(--fs-xs); color:var(--text3); }
+/* ── DID YOU KNOW CARD ──────────────────────────────────────────────────── */
+.dyk-card{
+  background:linear-gradient(135deg,var(--blue-dark),var(--blue));
+  border-radius:var(--radius);padding:18px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.dyk-card::before{content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.06);}
+.dyk-card::after{content:'';position:absolute;bottom:-30px;right:20px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.04);}
+.dyk-label{font-size:var(--fs-xs);font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.dyk-label svg{width:12px;height:12px;stroke:rgba(255,255,255,0.6);fill:none;}
+.dyk-text{font-size:var(--fs-sm);color:#fff;line-height:1.65;font-weight:500;position:relative;z-index:1;}
+.dyk-loading{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.6);font-size:var(--fs-xs);}
+.dyk-source{font-size:var(--fs-xs);color:rgba(255,255,255,0.5);margin-top:8px;font-family:'JetBrains Mono',monospace;}
 
-  /* ── PROGRESS ────────────────────────────────────────────────────────── */
-  .progress-wrap { margin-bottom:16px; }
-  .progress-header { display:flex; justify-content:space-between; font-size:var(--fs-xs); color:var(--text3); margin-bottom:6px; font-family:'DM Mono',monospace; }
-  .progress-track { height:5px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:hidden; }
-  .progress-fill  { height:100%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:5px; transition:width 0.6s ease; }
-  [data-theme="light"] .progress-track { background:rgba(0,0,0,0.08); }
+/* ── STAT CARDS ─────────────────────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-card{
+  border-radius:var(--radius);padding:16px;
+  display:flex;flex-direction:column;gap:6px;
+  position:relative;overflow:hidden;
+}
+.stat-card.blue{background:var(--blue-light);border:1px solid var(--blue-border);}
+.stat-card.amber{background:var(--amber-light);border:1px solid var(--amber-border);}
+.stat-card.purple{background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);}
+.stat-card.teal{background:rgba(13,148,136,0.1);border:1px solid rgba(13,148,136,0.25);}
+.stat-icon svg{width:18px;height:18px;fill:none;stroke-width:1.8;}
+.stat-card.blue   .stat-icon svg{stroke:var(--blue);}
+.stat-card.amber  .stat-icon svg{stroke:var(--amber);}
+.stat-card.purple .stat-icon svg{stroke:var(--purple);}
+.stat-card.teal   .stat-icon svg{stroke:var(--teal);}
+.stat-val{font-size:var(--fs-xl);font-weight:800;line-height:1;}
+.stat-card.blue   .stat-val{color:var(--blue);}
+.stat-card.amber  .stat-val{color:var(--amber);}
+.stat-card.purple .stat-val{color:var(--purple);}
+.stat-card.teal   .stat-val{color:var(--teal);}
+.stat-key{font-size:var(--fs-xs);color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+.stat-sub{font-size:var(--fs-xs);color:var(--text3);}
 
-  /* ── SESSIONS ────────────────────────────────────────────────────────── */
-  .session-item {
-    display:flex; align-items:flex-start; gap:10px;
-    padding:clamp(10px,3vw,14px); border-radius:var(--radius-sm); margin-bottom:7px;
-    background:var(--surface); border:1px solid var(--border); transition:all 0.2s;
-  }
-  .session-item.done { opacity:0.45; }
-  .session-icon { flex-shrink:0; margin-top:2px; }
-  .session-icon svg { width:20px; height:20px; stroke:var(--gold); fill:none; stroke-width:1.7; }
-  .session-body { flex:1; min-width:0; }
-  .session-topic { font-size:var(--fs-md); font-weight:600; color:var(--text); margin-bottom:3px; }
-  .session-topic.done { text-decoration:line-through; color:var(--text3); }
-  .session-method { font-size:var(--fs-xs); color:var(--text2); margin-bottom:3px; line-height:1.5; }
-  .session-method strong { color:var(--gold); }
-  .session-meta { font-size:var(--fs-xs); color:var(--text3); font-family:'DM Mono',monospace; }
-  .done-btn {
-    padding:6px 12px; border-radius:6px; border:1px solid var(--gold);
-    background:transparent; color:var(--gold); cursor:pointer;
-    font-size:var(--fs-xs); font-family:'DM Mono',monospace;
-    flex-shrink:0; align-self:center; transition:all 0.2s;
-    white-space:nowrap;
-  }
-  .done-btn:active { background:var(--gold-glow); }
+/* ── WEEKLY CHART ───────────────────────────────────────────────────────── */
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+.chart-title{font-size:var(--fs-sm);font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:80px;}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.chart-bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%;}
+.chart-bar{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:height 0.5s ease;}
+.chart-bar.today{background:var(--blue);}
+.chart-bar.past{background:var(--bg4);}
+.chart-bar.future{background:var(--bg3);}
+.chart-lbl{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.chart-lbl.today{color:var(--blue);font-weight:700;}
 
-  /* ── HABIT GRID ──────────────────────────────────────────────────────── */
-  .habit-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
-  .habit-day {
-    aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; font-family:'DM Mono',monospace;
-  }
-  .habit-day .hd-num   { font-size:clamp(9px,2.5vw,12px); font-weight:600; }
-  .habit-day .hd-label { font-size:clamp(7px,1.8vw,9px); opacity:0.6; }
-  .habit-day.studied   { background:var(--gold); color:var(--bg); }
-  .habit-day.missed    { background:rgba(255,255,255,0.04); color:var(--text3); }
-  .habit-day.today     { border:1.5px solid var(--gold); color:var(--text2); }
+/* ── PROGRESS ───────────────────────────────────────────────────────────── */
+.progress-wrap{margin-bottom:16px;}
+.progress-header{display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--text3);margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.progress-track{height:6px;background:var(--bg3);border-radius:6px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue-dark),var(--blue));border-radius:6px;transition:width 0.6s ease;}
 
-  /* ── INPUTS ──────────────────────────────────────────────────────────── */
-  .input-field {
-    width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
-    border-radius:var(--radius-sm); padding:clamp(9px,2.5vw,12px) clamp(10px,3vw,14px);
-    color:var(--text); font-size:var(--fs-md);
-    font-family:'Cormorant Garamond',Georgia,serif;
-    transition:border-color 0.2s; -webkit-appearance:none;
-  }
-  .input-field:focus { border-color:var(--gold); outline:none; }
-  .input-field::placeholder { color:var(--text3); }
-  textarea.input-field { resize:vertical; font-family:'DM Mono',monospace; font-size:var(--fs-sm); line-height:1.6; }
-  select.input-field { cursor:pointer; background-image:none; }
+/* ── HABIT TRACKER ──────────────────────────────────────────────────────── */
+.habit-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+.habit-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px;}
+.habit-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;cursor:default;}
+.habit-day .hd-num{font-size:clamp(9px,2.5vw,11px);font-weight:600;}
+.habit-day .hd-lbl{font-size:clamp(7px,1.8vw,9px);opacity:0.6;}
+.habit-day.studied{background:var(--blue);color:#fff;}
+.habit-day.missed{background:var(--surface2);color:var(--text3);}
+.habit-day.today{border:2px solid var(--blue);color:var(--text2);}
 
-  /* ── BUTTONS ─────────────────────────────────────────────────────────── */
-  .btn-primary {
-    width:100%; padding:clamp(11px,3vw,14px); border-radius:var(--radius-sm);
-    border:none; background:var(--gold); color:#0b0b11;
-    font-weight:700; font-size:var(--fs-md); cursor:pointer;
-    letter-spacing:0.5px; transition:opacity 0.18s;
-    font-family:'Cormorant Garamond',serif;
-  }
-  .btn-primary:active { opacity:0.82; }
-  .btn-outline {
-    padding:10px 18px; border-radius:var(--radius-sm); border:1px solid var(--border);
-    background:transparent; color:var(--text2); cursor:pointer;
-    font-size:var(--fs-sm); transition:border-color 0.2s;
-  }
-  .btn-outline:active { border-color:var(--gold-border); }
-  .btn-gold-outline {
-    padding:10px 18px; border-radius:var(--radius-sm); border:1px solid var(--gold);
-    background:transparent; color:var(--gold); cursor:pointer;
-    font-size:var(--fs-sm); font-family:'DM Mono',monospace;
-    transition:background 0.18s; display:inline-flex; align-items:center; gap:6px;
-  }
-  .btn-gold-outline svg { width:14px; height:14px; stroke:var(--gold); fill:none; }
-  .btn-gold-outline:active { background:var(--gold-glow); }
+/* ── SECTION LABEL ──────────────────────────────────────────────────────── */
+.section-label{font-size:var(--fs-xs);font-weight:700;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin:20px 0 10px;font-family:'JetBrains Mono',monospace;}
+.section-label:first-child{margin-top:0;}
 
-  /* ── ADD FORM ────────────────────────────────────────────────────────── */
-  #add-form { display:none; background:var(--surface); border:1px solid var(--gold-border); border-radius:var(--radius); padding:clamp(14px,4vw,20px); margin-bottom:14px; }
-  #add-form.open { display:block; animation:fadeUp 0.22s ease; }
-  .form-title { font-size:var(--fs-sm); color:var(--gold); letter-spacing:1px; font-family:'DM Mono',monospace; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
-  .form-title svg { width:14px; height:14px; stroke:var(--gold); fill:none; }
-  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
-  .form-group { margin-bottom:8px; }
-  .form-label { font-size:var(--fs-xs); color:var(--text3); letter-spacing:1px; font-family:'DM Mono',monospace; text-transform:uppercase; margin-bottom:5px; display:block; }
-  .form-btns { display:flex; gap:8px; margin-top:14px; }
+/* ── SESSION ITEMS ──────────────────────────────────────────────────────── */
+.session-item{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:var(--radius-sm);margin-bottom:8px;background:var(--bg2);border:1px solid var(--border);transition:all 0.2s;}
+.session-item.done{opacity:0.4;}
+.session-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.session-icon svg{width:18px;height:18px;fill:none;stroke-width:1.8;}
+.session-icon.blue{background:var(--blue-light);}
+.session-icon.blue svg{stroke:var(--blue);}
+.session-icon.amber{background:var(--amber-light);}
+.session-icon.amber svg{stroke:var(--amber);}
+.session-icon.purple{background:rgba(124,58,237,0.1);}
+.session-icon.purple svg{stroke:var(--purple);}
+.session-body{flex:1;min-width:0;}
+.session-topic{font-size:var(--fs-md);font-weight:600;color:var(--text);margin-bottom:2px;}
+.session-topic.done{text-decoration:line-through;color:var(--text3);}
+.session-method{font-size:var(--fs-xs);color:var(--blue);font-weight:600;margin-bottom:2px;}
+.session-desc{font-size:var(--fs-xs);color:var(--text2);line-height:1.5;}
+.session-meta{font-size:var(--fs-xs);color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.done-btn{padding:7px 14px;border-radius:20px;border:1.5px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer;font-size:var(--fs-xs);font-weight:600;flex-shrink:0;align-self:center;transition:all 0.18s;white-space:nowrap;font-family:inherit;}
+.done-btn:active{background:var(--blue);color:#fff;}
 
-  /* ── SUBJECT CARDS ───────────────────────────────────────────────────── */
-  .subject-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:clamp(12px,3.5vw,16px); margin-bottom:10px; transition:border-color 0.2s; }
-  .subject-card:active { border-color:var(--gold-border); }
-  .subject-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
-  .subject-name { font-size:var(--fs-lg); font-weight:700; }
-  .subject-meta { font-size:var(--fs-xs); color:var(--text3); margin-top:3px; font-family:'DM Mono',monospace; }
-  .remove-btn { background:transparent; border:none; color:var(--text3); cursor:pointer; padding:2px 6px; border-radius:6px; transition:all 0.15s; }
-  .remove-btn:active { color:var(--danger); background:rgba(224,112,96,0.1); }
-  .remove-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; }
-  .due-urgent { color:var(--danger) !important; }
-  .due-soon   { color:#d4aa60 !important; }
+/* ── COURSES (Plan tab) ─────────────────────────────────────────────────── */
+.course-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;transition:border-color 0.2s;}
+.course-header{padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.course-color-bar{width:4px;align-self:stretch;border-radius:4px;flex-shrink:0;}
+.course-info{flex:1;min-width:0;}
+.course-name{font-size:var(--fs-md);font-weight:700;}
+.course-code{font-size:var(--fs-xs);color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.course-actions{display:flex;gap:6px;align-items:center;}
+.course-chevron{transition:transform 0.2s;}
+.course-chevron.open{transform:rotate(180deg);}
+.course-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border);}
+.course-body.open{display:block;}
 
-  /* method badge */
-  .method-badge {
-    display:inline-flex; align-items:center; gap:6px;
-    background:var(--gold-glow); border:1px solid var(--gold-border);
-    border-radius:6px; padding:4px 10px; font-size:var(--fs-xs);
-    color:var(--gold); font-family:'DM Mono',monospace; margin-bottom:10px;
-  }
-  .method-badge svg { width:12px; height:12px; stroke:var(--gold); fill:none; }
+/* assessment chips row */
+.assessment-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;margin-bottom:12px;}
+.assessment-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:20px;cursor:pointer;
+  font-size:var(--fs-xs);font-weight:600;border:1.5px solid transparent;
+  transition:all 0.15s;
+}
+.assessment-chip.exam{background:rgba(239,68,68,0.1);color:var(--danger);border-color:rgba(239,68,68,0.25);}
+.assessment-chip.test{background:var(--amber-light);color:var(--amber);border-color:var(--amber-border);}
+.assessment-chip.assignment{background:var(--blue-light);color:var(--blue);border-color:var(--blue-border);}
+.assessment-chip.presentation{background:rgba(124,58,237,0.1);color:var(--purple);border-color:rgba(124,58,237,0.25);}
+.chip-due{font-family:'JetBrains Mono',monospace;font-size:9px;opacity:0.8;}
 
-  /* ── AI TUTOR ────────────────────────────────────────────────────────── */
-  #tutor-wrap { display:flex; flex-direction:column; height:calc(100dvh - 260px); min-height:300px; }
-  #tutor-chat { flex:1; overflow-y:auto; padding:4px 0 10px; }
-  .chat-bubble { margin-bottom:12px; display:flex; }
-  .chat-bubble.user { justify-content:flex-end; }
-  .bubble-inner {
-    max-width:86%; padding:10px 14px; border-radius:12px;
-    font-size:var(--fs-sm); line-height:1.7; white-space:pre-wrap; word-break:break-word;
-  }
-  .chat-bubble.user .bubble-inner { background:var(--gold-glow); border:1px solid var(--gold-border); border-radius:12px 12px 4px 12px; }
-  .chat-bubble.ai   .bubble-inner { background:var(--surface); border:1px solid var(--border); border-radius:12px 12px 12px 4px; }
-  .chat-input-row { display:flex; gap:8px; padding-top:8px; }
-  .chat-input-row .input-field { flex:1; }
-  .send-btn {
-    width:44px; height:44px; border-radius:var(--radius-sm); border:none;
-    background:var(--gold); color:#0b0b11; font-size:18px; cursor:pointer;
-    flex-shrink:0; display:flex; align-items:center; justify-content:center;
-    transition:opacity 0.18s;
-  }
-  .send-btn:active { opacity:0.8; }
-  .send-btn svg { width:18px; height:18px; stroke:#0b0b11; fill:none; stroke-width:2.2; }
-  /* offline tutor banner */
-  #tutor-offline {
-    display:none; background:rgba(224,112,96,0.08); border:1px solid rgba(224,112,96,0.25);
-    border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:10px;
-    font-size:var(--fs-sm); color:var(--danger); font-family:'DM Mono',monospace;
-    line-height:1.5;
-  }
-  #tutor-offline.show { display:block; }
+/* topic list */
+.topic-list{margin-top:12px;}
+.topic-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:var(--radius-xs);cursor:pointer;transition:background 0.15s;
+  margin-bottom:4px;border:1px solid transparent;
+}
+.topic-item:active{background:var(--blue-light);border-color:var(--blue-border);}
+.topic-item-num{width:22px;height:22px;border-radius:50%;background:var(--blue-light);color:var(--blue);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.topic-item-text{flex:1;font-size:var(--fs-sm);font-weight:500;}
+.topic-item-done{color:var(--text3);text-decoration:line-through;}
+.topic-item svg{width:14px;height:14px;stroke:var(--text3);fill:none;flex-shrink:0;}
 
-  /* thinking dots */
-  .thinking { display:flex; align-items:center; gap:5px; padding:4px 0; }
-  .dot { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:blink 1.2s infinite; }
-  .dot:nth-child(2) { animation-delay:0.2s; }
-  .dot:nth-child(3) { animation-delay:0.4s; }
-  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+/* add course / assessment forms */
+.add-form{display:none;background:var(--bg3);border:1px solid var(--blue-border);border-radius:var(--radius);padding:clamp(14px,4vw,18px);margin-bottom:14px;}
+.add-form.open{display:block;animation:fadeUp 0.22s ease;}
+.form-label{font-size:var(--fs-xs);font-weight:700;letter-spacing:0.5px;color:var(--text3);margin-bottom:5px;display:block;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.form-group{margin-bottom:10px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.form-section-title{font-size:var(--fs-sm);font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.form-section-title svg{width:14px;height:14px;stroke:var(--blue);fill:none;}
+.form-btns{display:flex;gap:8px;margin-top:14px;}
+.color-row{display:flex;gap:8px;margin-bottom:10px;}
+.color-dot{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.15s;}
+.color-dot.sel{border-color:var(--text);transform:scale(1.15);}
 
-  /* ── SETTINGS ────────────────────────────────────────────────────────── */
-  .setting-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:clamp(14px,4vw,18px); margin-bottom:10px; }
-  .setting-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-  .setting-header svg { width:16px; height:16px; stroke:var(--gold); fill:none; stroke-width:1.8; }
-  .setting-title { font-size:var(--fs-md); font-weight:700; color:var(--gold); }
-  .setting-desc { font-size:var(--fs-sm); color:var(--text3); margin-bottom:14px; line-height:1.6; }
-  .days-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
-  .day-btn {
-    padding:8px 13px; border-radius:7px; cursor:pointer;
-    border:1px solid var(--border); background:transparent;
-    color:var(--text3); font-size:var(--fs-sm); font-family:'DM Mono',monospace;
-    transition:all 0.15s;
-  }
-  .day-btn.on { border-color:var(--gold); background:var(--gold-glow); color:var(--gold); }
-  .hours-row { display:flex; align-items:center; gap:14px; }
-  .hours-row input[type=range] { flex:1; accent-color:var(--gold); height:4px; }
-  .hours-val { font-size:var(--fs-xl); font-weight:700; color:var(--gold); font-family:'DM Mono',monospace; min-width:40px; }
+/* ── TOPIC DETAIL SHEET ─────────────────────────────────────────────────── */
+#topic-sheet{
+  position:fixed;inset:0;z-index:500;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  transform:translateY(100%);transition:transform 0.32s cubic-bezier(.4,0,.2,1);
+}
+#topic-sheet.open{transform:translateY(0);}
+#topic-sheet-header{
+  padding:calc(var(--safe-t) + 14px) 16px 14px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+#topic-sheet-back{background:transparent;border:none;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:4px;font-size:var(--fs-sm);font-family:inherit;}
+#topic-sheet-back svg{width:18px;height:18px;stroke:var(--text2);fill:none;}
+#topic-sheet-title{font-size:var(--fs-md);font-weight:700;flex:1;}
+#topic-sheet-body{flex:1;overflow-y:auto;padding:20px 16px;}
+.topic-overview-chip{display:inline-flex;align-items:center;gap:5px;background:var(--blue-light);color:var(--blue);border-radius:20px;padding:4px 12px;font-size:var(--fs-xs);font-weight:600;margin-bottom:14px;}
+.topic-section{margin-bottom:20px;}
+.topic-section-title{font-size:var(--fs-xs);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;font-family:'JetBrains Mono',monospace;}
+.topic-content{font-size:var(--fs-sm);line-height:1.75;color:var(--text2);}
+.topic-content strong{color:var(--text);font-weight:600;}
+.text-ref{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;}
+.text-ref-title{font-size:var(--fs-sm);font-weight:700;color:var(--text);margin-bottom:3px;}
+.text-ref-location{font-size:var(--fs-xs);color:var(--blue);font-family:'JetBrains Mono',monospace;}
+.text-ref-note{font-size:var(--fs-xs);color:var(--text2);margin-top:4px;line-height:1.5;}
+.topic-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:12px;color:var(--text3);}
+.topic-loading svg{width:32px;height:32px;stroke:var(--blue);fill:none;animation:spin 1.5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  /* theme toggle row */
-  .toggle-row { display:flex; align-items:center; justify-content:space-between; }
-  .toggle-switch {
-    width:48px; height:26px; border-radius:13px; border:1px solid var(--border);
-    background:var(--bg4); cursor:pointer; position:relative; transition:background 0.25s;
-    flex-shrink:0;
-  }
-  .toggle-switch.on { background:var(--gold); border-color:var(--gold); }
-  .toggle-knob {
-    width:20px; height:20px; border-radius:50%; background:#fff;
-    position:absolute; top:2px; left:2px; transition:left 0.22s;
-    box-shadow:0 1px 4px rgba(0,0,0,0.3);
-  }
-  .toggle-switch.on .toggle-knob { left:24px; }
+/* ── AI TUTOR ───────────────────────────────────────────────────────────── */
+.tutor-view{display:flex;flex-direction:column;height:calc(100dvh - 200px);min-height:300px;}
+#tutor-chat{flex:1;overflow-y:auto;padding:4px 0 10px;}
+.chat-bubble{margin-bottom:12px;display:flex;}
+.chat-bubble.user{justify-content:flex-end;}
+.bubble-inner{max-width:86%;padding:12px 16px;border-radius:16px;font-size:var(--fs-sm);line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+.chat-bubble.user .bubble-inner{background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px;}
+.chat-bubble.ai .bubble-inner{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 16px 4px;}
+.chat-input-row{display:flex;gap:8px;padding-top:10px;}
+.chat-input-row .input-field{flex:1;}
+.send-btn{width:46px;height:46px;border-radius:12px;border:none;background:var(--blue);color:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity 0.18s;}
+.send-btn:active{opacity:0.8;}
+.send-btn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;}
+#tutor-offline{display:none;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px;font-size:var(--fs-sm);color:var(--danger);line-height:1.5;}
+#tutor-offline.show{display:block;}
+.thinking{display:flex;align-items:center;gap:5px;padding:4px 0;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:blink 1.2s infinite;}
+.dot:nth-child(2){animation-delay:0.2s;}.dot:nth-child(3){animation-delay:0.4s;}
+@keyframes blink{0%,80%,100%{opacity:0.2}40%{opacity:1}}
 
-  /* ── NOTIFICATION BAR ────────────────────────────────────────────────── */
-  #notif-bar {
-    position:fixed; top:0; left:50%; transform:translateX(-50%) translateY(-80px);
-    background:var(--bg3); border:1px solid var(--gold-border);
-    border-radius:var(--radius-sm); padding:12px 20px;
-    font-size:var(--fs-sm); font-family:'DM Mono',monospace;
-    z-index:999; transition:transform 0.32s cubic-bezier(.34,1.56,.64,1);
-    max-width:min(340px, 90vw); text-align:center;
-    box-shadow:var(--shadow); white-space:nowrap;
-  }
-  #notif-bar.show { transform:translateX(-50%) translateY(calc(var(--safe-t) + 12px)); }
+/* ── INPUTS / BUTTONS ───────────────────────────────────────────────────── */
+.input-field{
+  width:100%;background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:clamp(10px,2.5vw,12px) 14px;
+  color:var(--text);font-size:var(--fs-md);font-family:inherit;
+  transition:border-color 0.2s;-webkit-appearance:none;
+}
+.input-field:focus{border-color:var(--blue);outline:none;background:var(--bg);}
+.input-field::placeholder{color:var(--text3);}
+textarea.input-field{resize:vertical;font-family:'JetBrains Mono',monospace;font-size:var(--fs-sm);line-height:1.6;}
+select.input-field{cursor:pointer;}
+.btn-primary{
+  width:100%;padding:13px;border-radius:12px;border:none;
+  background:var(--blue);color:#fff;font-weight:700;font-size:var(--fs-md);
+  cursor:pointer;transition:opacity 0.18s;font-family:inherit;letter-spacing:0.2px;
+}
+.btn-primary:active{opacity:0.82;}
+.btn-secondary{
+  padding:11px 18px;border-radius:12px;border:1.5px solid var(--border);
+  background:transparent;color:var(--text2);cursor:pointer;font-size:var(--fs-sm);
+  transition:all 0.18s;font-family:inherit;font-weight:500;
+}
+.btn-secondary:active{border-color:var(--blue-border);color:var(--blue);}
+.btn-blue-outline{
+  display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:12px;
+  border:1.5px solid var(--blue);background:transparent;color:var(--blue);
+  cursor:pointer;font-size:var(--fs-sm);font-weight:600;transition:background 0.18s;font-family:inherit;
+}
+.btn-blue-outline:active{background:var(--blue-light);}
+.btn-blue-outline svg{width:14px;height:14px;stroke:var(--blue);fill:none;}
 
-  /* ── INSTALL BANNER ──────────────────────────────────────────────────── */
-  #install-banner {
-    display:none; position:fixed;
-    bottom:calc(var(--safe-b) + 68px); left:12px; right:12px;
-    background:var(--bg3); border:1px solid var(--gold-border);
-    border-radius:var(--radius); padding:14px 16px; z-index:200;
-    box-shadow:var(--shadow);
-  }
-  #install-banner.show { display:flex; align-items:center; gap:12px; }
-  .install-text { flex:1; font-size:var(--fs-sm); line-height:1.5; }
-  .install-text strong { display:block; color:var(--gold); font-size:var(--fs-md); margin-bottom:2px; }
-  .install-close { background:transparent; border:none; color:var(--text3); font-size:20px; cursor:pointer; padding:0 4px; }
+/* ── SETTINGS ───────────────────────────────────────────────────────────── */
+.setting-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:clamp(14px,4vw,18px);margin-bottom:10px;}
+.setting-header{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.setting-header svg{width:16px;height:16px;fill:none;stroke-width:1.8;}
+.setting-title{font-size:var(--fs-md);font-weight:700;}
+.setting-desc{font-size:var(--fs-sm);color:var(--text3);margin-bottom:14px;line-height:1.6;}
+.days-row{display:flex;gap:6px;flex-wrap:wrap;}
+.day-btn{padding:8px 13px;border-radius:20px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text3);font-size:var(--fs-xs);font-weight:600;transition:all 0.15s;font-family:inherit;}
+.day-btn.on{border-color:var(--blue);background:var(--blue-light);color:var(--blue);}
+.hours-row{display:flex;align-items:center;gap:14px;}
+.hours-row input[type=range]{flex:1;accent-color:var(--blue);height:4px;}
+.hours-val{font-size:var(--fs-xl);font-weight:800;color:var(--blue);font-family:'JetBrains Mono',monospace;min-width:44px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;}
+.toggle-sw{width:50px;height:28px;border-radius:14px;background:var(--bg4);border:1px solid var(--border);cursor:pointer;position:relative;transition:background 0.25s;flex-shrink:0;}
+.toggle-sw.on{background:var(--blue);border-color:var(--blue);}
+.toggle-knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left 0.22s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.toggle-sw.on .toggle-knob{left:24px;}
 
-  /* ── EMPTY STATE ─────────────────────────────────────────────────────── */
-  .empty-state { text-align:center; padding:clamp(28px,8vw,48px) 20px; color:var(--text3); }
-  .empty-icon { margin-bottom:12px; }
-  .empty-icon svg { width:clamp(32px,8vw,44px); height:clamp(32px,8vw,44px); stroke:var(--text3); fill:none; stroke-width:1.3; }
-  .empty-title { font-size:var(--fs-md); color:var(--text2); margin-bottom:6px; }
-  .empty-sub   { font-size:var(--fs-sm); line-height:1.65; }
+/* ── NOTIFICATION BAR ───────────────────────────────────────────────────── */
+#notif-bar{
+  position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:var(--bg3);border:1px solid var(--blue-border);border-radius:var(--radius-sm);
+  padding:12px 20px;font-size:var(--fs-sm);z-index:999;
+  transition:transform 0.32s cubic-bezier(.34,1.56,.64,1);
+  max-width:min(340px,90vw);text-align:center;box-shadow:var(--shadow);
+  font-family:'JetBrains Mono',monospace;
+}
+#notif-bar.show{transform:translateX(-50%) translateY(calc(var(--safe-t) + 12px));}
 
-  /* ── RESPONSIVE: tablet+ ─────────────────────────────────────────────── */
-  @media (min-width:600px) {
-    .view { max-width:640px; margin:0 auto; }
-    .stats-grid { grid-template-columns:repeat(4,1fr); }
-    .form-row { grid-template-columns:1fr 1fr 1fr; }
-    .habit-grid { grid-template-columns:repeat(14,1fr); }
-  }
-  @media (min-width:900px) {
-    .view { max-width:800px; }
-    #header { padding-left:calc(max(var(--safe-l),24px)); padding-right:calc(max(var(--safe-r),24px)); }
-  }
-  </style>
+/* ── MODAL OVERLAY ──────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  z-index:400;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.22s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{
+  width:100%;max-width:480px;background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;
+  padding:20px 20px calc(20px + var(--safe-b));
+  transform:translateY(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);
+  max-height:80dvh;overflow-y:auto;
+}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--bg4);margin:0 auto 18px;}
+.modal-title{font-size:var(--fs-lg);font-weight:700;margin-bottom:16px;}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:clamp(28px,8vw,48px) 20px;color:var(--text3);}
+.empty-icon{margin-bottom:12px;}
+.empty-icon svg{width:clamp(36px,9vw,48px);height:clamp(36px,9vw,48px);stroke:var(--text3);fill:none;stroke-width:1.2;}
+.empty-title{font-size:var(--fs-md);font-weight:700;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:var(--fs-sm);line-height:1.65;}
+
+/* ── INSTALL BANNER ─────────────────────────────────────────────────────── */
+#install-banner{
+  display:none;position:fixed;bottom:calc(var(--safe-b)+68px);left:12px;right:12px;
+  background:var(--bg3);border:1px solid var(--blue-border);border-radius:var(--radius);
+  padding:14px 16px;z-index:200;box-shadow:var(--shadow);
+}
+#install-banner.show{display:flex;align-items:center;gap:12px;}
+.install-text{flex:1;font-size:var(--fs-sm);line-height:1.5;}
+.install-text strong{display:block;color:var(--blue);font-size:var(--fs-md);margin-bottom:2px;}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media(min-width:600px){
+  .view{max-width:640px;margin:0 auto;}
+  .stats-grid{grid-template-columns:repeat(4,1fr);}
+  .form-row{grid-template-columns:1fr 1fr 1fr;}
+  .habit-grid{grid-template-columns:repeat(14,1fr);}
+}
+@media(min-width:900px){
+  .view{max-width:800px;}
+  #topic-sheet{left:50%;transform:translateX(-50%) translateY(100%);max-width:640px;border-radius:var(--radius) var(--radius) 0 0;}
+  #topic-sheet.open{transform:translateX(-50%) translateY(0);}
+}
+</style>
 </head>
 <body>
 
-<!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
-<div id="header">
-  <div class="logo" onclick="switchView('dashboard')" title="Home">
-    <div class="logo-icon">
+<!-- ══════════════════════════════════════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-logo">
+    <div class="auth-logo-icon">
       <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     </div>
-    <div class="logo-text">
-      <div class="logo-title">STUDY OS</div>
-      <div class="logo-sub">ACADEMIC PLANNER</div>
-    </div>
+    <div class="auth-title">StudyOS</div>
+    <div class="auth-sub">Your AI-powered academic planner</div>
   </div>
-  <div class="header-right">
-    <div class="online-dot" id="online-dot" title="Online"></div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark">
-      <svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-    <div class="streak-pill">
-      <svg viewBox="0 0 24 24" style="stroke:var(--gold);fill:none;stroke-width:1.8"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 12c0 3-2 4-2 7a2 2 0 0 0 4 0c0-3-2-4-2-7z"/></svg>
-      <span class="streak-num" id="streak-display">0</span>
-      <span class="streak-lbl">streak</span>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+
+    <!-- Sign In -->
+    <div class="auth-form" id="form-signin">
+      <div class="auth-error" id="signin-error"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="input-field" type="email" id="signin-email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="input-field" type="password" id="signin-pass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-primary" onclick="doSignIn()">Sign In</button>
+    </div>
+
+    <!-- Sign Up -->
+    <div class="auth-form hidden" id="form-signup">
+      <div class="auth-error" id="signup-error"></div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="input-field" type="text" id="signup-name" placeholder="e.g. Rhema"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="input-field" type="email" id="signup-email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="input-field" type="password" id="signup-pass" placeholder="Min 6 characters" autocomplete="new-password"/>
+      </div>
+      <button class="btn-primary" onclick="doSignUp()">Create Account</button>
     </div>
   </div>
 </div>
 
-<!-- ── MAIN ────────────────────────────────────────────────────────────────── -->
-<div id="main">
+<!-- ══════════════════════════════════════════════════════════════════════
+     APP SCREEN
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="app-screen" class="hidden">
 
-  <!-- DASHBOARD -->
-  <div class="view active" id="view-dashboard">
-    <div style="margin-bottom:18px;">
-      <div style="font-size:var(--fs-xl);font-weight:700;" id="greeting-text"></div>
-      <div style="font-size:var(--fs-sm);color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace;" id="date-text"></div>
+  <!-- HEADER -->
+  <div id="header">
+    <div class="logo" onclick="switchView('dashboard')">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <div><div class="logo-title">StudyOS</div><div class="logo-sub">ACADEMIC PLANNER</div></div>
     </div>
-    <div class="stats-grid" id="stats-grid"></div>
-    <div class="progress-wrap" id="progress-wrap"></div>
-    <div class="section-label">Today's Sessions</div>
-    <div id="today-sessions"></div>
-    <div class="section-label">14-Day Habit Tracker</div>
-    <div class="habit-grid" id="habit-grid"></div>
-    <div style="height:16px;"></div>
+    <div class="header-right">
+      <div class="online-dot" id="online-dot"></div>
+      <button class="h-btn" onclick="toggleTheme()" id="theme-btn">
+        <svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="streak-chip">
+        <svg viewBox="0 0 24 24"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/></svg>
+        <span class="streak-num" id="streak-display">0</span>
+        <span class="streak-lbl">streak</span>
+      </div>
+      <div class="user-avatar" id="user-avatar" onclick="showUserMenu()">?</div>
+    </div>
   </div>
 
-  <!-- PLAN -->
-  <div class="view" id="view-plan">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div>
-        <div style="font-size:var(--fs-xl);font-weight:700;">Study Plan</div>
-        <div style="font-size:var(--fs-sm);color:var(--text3);">AI-generated from your outlines</div>
+  <!-- MAIN CONTENT -->
+  <div id="main">
+
+    <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+    <div class="view active" id="view-dashboard">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:var(--fs-xl);font-weight:800;letter-spacing:-0.5px;" id="greeting-text"></div>
+        <div style="font-size:var(--fs-sm);color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;" id="date-text"></div>
       </div>
-      <button class="btn-gold-outline" onclick="toggleAddForm()">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add
-      </button>
+
+      <!-- Did You Know -->
+      <div class="dyk-card" id="dyk-card">
+        <div class="dyk-label">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Did You Know?
+        </div>
+        <div id="dyk-content" class="dyk-loading">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <!-- Weekly chart -->
+      <div class="chart-card" id="chart-card"></div>
+
+      <div class="progress-wrap" id="progress-wrap"></div>
+
+      <div class="section-label">Today's Sessions</div>
+      <div id="today-sessions"></div>
+
+      <!-- Habit tracker -->
+      <div class="habit-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:var(--fs-sm);font-weight:700;">Habit Tracker</span>
+          <span style="font-size:var(--fs-xs);color:var(--text3);font-family:'JetBrains Mono',monospace;">14 days</span>
+        </div>
+        <div class="habit-grid" id="habit-grid"></div>
+      </div>
+      <div style="height:16px;"></div>
     </div>
-    <div id="add-form">
-      <div class="form-title">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-        New Subject / Assignment
-      </div>
-      <div class="form-row">
-        <div class="form-group" style="margin:0;">
-          <label class="form-label">Subject name</label>
-          <input class="input-field" id="f-name" placeholder="e.g. LCS221"/>
+
+    <!-- ── COURSES (Plan) ──────────────────────────────────────────────── -->
+    <div class="view" id="view-plan">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:var(--fs-xl);font-weight:800;letter-spacing:-0.5px;">Courses</div>
+          <div style="font-size:var(--fs-sm);color:var(--text3);">Your semester — tap to expand</div>
         </div>
-        <div class="form-group" style="margin:0;">
-          <label class="form-label">Deadline</label>
-          <input class="input-field" type="date" id="f-date"/>
+        <button class="btn-blue-outline" onclick="openAddCourse()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Course
+        </button>
+      </div>
+      <div id="course-list"></div>
+      <div style="height:16px;"></div>
+    </div>
+
+    <!-- ── AI TUTOR ───────────────────────────────────────────────────── -->
+    <div class="view" id="view-tutor">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:var(--fs-xl);font-weight:800;letter-spacing:-0.5px;">AI Tutor</div>
+        <div style="font-size:var(--fs-sm);color:var(--text3);">Ask anything — I'll explain clearly</div>
+      </div>
+      <div id="tutor-offline">
+        <strong>You're offline</strong> — The AI Tutor needs internet. All other features still work offline.
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <select class="input-field" id="tutor-context">
+          <option value="">No context (general question)</option>
+        </select>
+      </div>
+      <div class="tutor-view">
+        <div id="tutor-chat">
+          <div class="empty-state" style="padding:24px 0;">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" style="stroke:var(--blue);"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="empty-title">Ask me anything</div>
+            <div class="empty-sub">Concepts, essay structure, historical context, recommended readings...</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="input-field" id="tutor-input" placeholder="Ask your AI tutor..." autocomplete="off"/>
+          <button class="send-btn" onclick="sendTutor()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
         </div>
       </div>
-      <div class="form-group">
+    </div>
+
+    <!-- ── SETTINGS ───────────────────────────────────────────────────── -->
+    <div class="view" id="view-settings">
+      <div style="font-size:var(--fs-xl);font-weight:800;letter-spacing:-0.5px;margin-bottom:4px;">Settings</div>
+      <div style="font-size:var(--fs-sm);color:var(--text3);margin-bottom:16px;">Customise your study environment</div>
+
+      <div class="setting-card">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--blue)"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><div class="setting-title">Appearance</div></div>
+        <div class="setting-desc">Switch between dark and light mode for your preference.</div>
+        <div class="toggle-row"><span style="font-size:var(--fs-sm);font-weight:500;">Light Mode</span><div class="toggle-sw" id="theme-toggle-sw" onclick="toggleTheme()"><div class="toggle-knob"></div></div></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--amber)"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="setting-title">Notifications</div></div>
+        <div class="setting-desc">Session reminders, streak alerts, and deadline warnings.</div>
+        <button class="btn-blue-outline" onclick="setupNotifications()" id="notif-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Enable Notifications</button>
+        <div id="notif-status" style="font-size:var(--fs-xs);color:var(--text3);margin-top:8px;font-family:'JetBrains Mono',monospace;"></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--blue)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="setting-title">Study Days</div></div>
+        <div class="setting-desc">Which days are available for study sessions?</div>
+        <div class="days-row" id="days-row"></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--teal)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div class="setting-title">Hours Per Study Day</div></div>
+        <div class="setting-desc">How many hours can you realistically study per day?</div>
+        <div class="hours-row"><input type="range" min="1" max="8" id="hours-slider" oninput="updateHours(this.value)"/><div class="hours-val" id="hours-val">3h</div></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--blue)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><div class="setting-title">Google Calendar</div></div>
+        <div class="setting-desc">Connect to auto-import your timetable.</div>
+        <button class="btn-blue-outline" onclick="showNotif('📅 Google Calendar sync coming soon!')"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Connect Calendar</button>
+      </div>
+
+      <div class="setting-card" style="border-color:rgba(239,68,68,0.2);">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--danger)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg><div class="setting-title" style="color:var(--danger);">Reset Data</div></div>
+        <div class="setting-desc">Clear all courses and sessions. Cannot be undone.</div>
+        <button class="btn-secondary" style="color:var(--danger);border-color:rgba(239,68,68,0.3);" onclick="resetAll()">Reset everything</button>
+      </div>
+
+      <div class="setting-card" style="border-color:rgba(239,68,68,0.2);">
+        <div class="setting-header"><svg viewBox="0 0 24 24" style="stroke:var(--danger)"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><div class="setting-title" style="color:var(--danger);">Sign Out</div></div>
+        <div class="setting-desc">Sign out of your StudyOS account.</div>
+        <button class="btn-secondary" style="color:var(--danger);border-color:rgba(239,68,68,0.3);" onclick="doSignOut()">Sign Out</button>
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+
+  </div><!-- #main -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="nav-btn active" id="nav-dashboard" onclick="switchView('dashboard')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn" id="nav-plan" onclick="switchView('plan')">
+      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Courses</span>
+    </button>
+    <button class="nav-btn" id="nav-tutor" onclick="switchView('tutor')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Tutor</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="switchView('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+</div><!-- #app-screen -->
+
+<!-- ── TOPIC DETAIL SHEET ──────────────────────────────────────────────────── -->
+<div id="topic-sheet">
+  <div id="topic-sheet-header">
+    <button id="topic-sheet-back" onclick="closeTopicSheet()">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div id="topic-sheet-title">Topic Overview</div>
+  </div>
+  <div id="topic-sheet-body"></div>
+</div>
+
+<!-- ── ADD COURSE MODAL ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-course-modal" onclick="if(event.target===this)closeAddCourse()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Course</div>
+    <div class="form-group">
+      <label class="form-label">Course Code</label>
+      <input class="input-field" id="c-code" placeholder="e.g. LCS221"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Course Name</label>
+      <input class="input-field" id="c-name" placeholder="e.g. Introduction to Literary Theory"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Course Color</label>
+      <div class="color-row" id="color-picker">
+        <div class="color-dot sel" style="background:#1a73e8;" data-color="#1a73e8" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#f59e0b;" data-color="#f59e0b" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#7c3aed;" data-color="#7c3aed" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#0d9488;" data-color="#0d9488" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#ef4444;" data-color="#ef4444" onclick="selectColor(this)"></div>
+        <div class="color-dot" style="background:#ec4899;" data-color="#ec4899" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Course Outline / Topics (one per line)</label>
+      <textarea class="input-field" id="c-outline" rows="7" placeholder="Paste your outline or list topics:&#10;&#10;The role of culture in language&#10;Sapir-Whorf hypothesis&#10;Language and identity&#10;Post-colonial linguistics&#10;Discourse analysis"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recommended Texts (one per line)</label>
+      <textarea class="input-field" id="c-texts" rows="4" placeholder="Author, Title (Year)&#10;e.g. Achebe, Things Fall Apart (1958)&#10;Ngugi, Decolonising the Mind (1986)"></textarea>
+    </div>
+    <div class="form-btns">
+      <button class="btn-primary" style="flex:1;" onclick="addCourse()">Add Course</button>
+      <button class="btn-secondary" onclick="closeAddCourse()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD ASSESSMENT MODAL ───────────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-assessment-modal" onclick="if(event.target===this)closeAddAssessment()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Assessment</div>
+    <input type="hidden" id="a-course-id"/>
+    <div class="form-row">
+      <div class="form-group" style="margin:0;">
         <label class="form-label">Type</label>
-        <select class="input-field" id="f-type">
+        <select class="input-field" id="a-type">
           <option value="exam">Exam</option>
-          <option value="assignment">Assignment</option>
           <option value="test">Test</option>
+          <option value="assignment">Assignment</option>
           <option value="presentation">Presentation</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Course outline / topics (one per line)</label>
-        <textarea class="input-field" id="f-outline" rows="7"
-          placeholder="Paste your outline or list topics one per line:&#10;&#10;e.g.&#10;The role of culture in language&#10;Sapir-Whorf hypothesis&#10;Language and identity&#10;Post-colonial linguistics&#10;Discourse analysis"></textarea>
-      </div>
-      <div class="form-btns">
-        <button class="btn-primary" style="flex:1;" onclick="addSubject()">Generate Plan</button>
-        <button class="btn-outline" onclick="toggleAddForm()">Cancel</button>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Deadline</label>
+        <input class="input-field" type="date" id="a-date"/>
       </div>
     </div>
-    <div id="subject-list"></div>
-    <div class="section-label" id="upcoming-label" style="display:none;">Upcoming Sessions</div>
-    <div id="upcoming-list"></div>
-    <div style="height:16px;"></div>
-  </div>
-
-  <!-- TUTOR -->
-  <div class="view" id="view-tutor">
-    <div style="margin-bottom:12px;">
-      <div style="font-size:var(--fs-xl);font-weight:700;">AI Tutor</div>
-      <div style="font-size:var(--fs-sm);color:var(--text3);">Ask anything — I'll explain clearly</div>
+    <div class="form-group">
+      <label class="form-label">Areas to Cover (one per line)</label>
+      <textarea class="input-field" id="a-areas" rows="5" placeholder="List the specific areas/topics this assessment covers:&#10;&#10;e.g. Chapter 3 — The Harlem Renaissance&#10;Postcolonial theory (Spivak, Bhabha)&#10;Close reading techniques"></textarea>
     </div>
-    <div id="tutor-offline">
-      <strong>You're offline</strong> — The AI Tutor needs an internet connection. Everything else still works. Reconnect and try again.
-    </div>
-    <div class="form-group" style="margin-bottom:10px;">
-      <select class="input-field" id="tutor-context">
-        <option value="">No context (general question)</option>
-      </select>
-    </div>
-    <div id="tutor-wrap">
-      <div id="tutor-chat">
-        <div style="text-align:center;padding:30px 16px;color:var(--text3);">
-          <div style="margin-bottom:12px;">
-            <svg width="40" height="40" viewBox="0 0 24 24" style="stroke:var(--text3);fill:none;stroke-width:1.3;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          </div>
-          <div style="font-size:var(--fs-md);margin-bottom:6px;">Ask me anything</div>
-          <div style="font-size:var(--fs-sm);line-height:1.7;">Concepts, definitions, essay structure, how to approach a topic, historical context...</div>
-        </div>
-      </div>
-      <div class="chat-input-row">
-        <input class="input-field" id="tutor-input" placeholder="Ask your AI tutor..." autocomplete="off"/>
-        <button class="send-btn" onclick="sendTutor()">
-          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
+    <div class="form-btns">
+      <button class="btn-primary" style="flex:1;" onclick="addAssessment()">Add Assessment</button>
+      <button class="btn-secondary" onclick="closeAddAssessment()">Cancel</button>
     </div>
   </div>
-
-  <!-- SETTINGS -->
-  <div class="view" id="view-settings">
-    <div style="font-size:var(--fs-xl);font-weight:700;margin-bottom:4px;">Settings</div>
-    <div style="font-size:var(--fs-sm);color:var(--text3);margin-bottom:16px;">Customise your study environment</div>
-
-    <!-- appearance -->
-    <div class="setting-card">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <div class="setting-title">Appearance</div>
-      </div>
-      <div class="setting-desc">Switch between dark and light mode.</div>
-      <div class="toggle-row">
-        <span style="font-size:var(--fs-sm);color:var(--text2);">Light Mode</span>
-        <div class="toggle-switch" id="theme-toggle-sw" onclick="toggleTheme()"><div class="toggle-knob"></div></div>
-      </div>
-    </div>
-
-    <!-- notifications -->
-    <div class="setting-card">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <div class="setting-title">Notifications</div>
-      </div>
-      <div class="setting-desc">Get reminders for sessions, streak keeps, and deadlines.</div>
-      <button class="btn-gold-outline" onclick="setupNotifications()" id="notif-btn">
-        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        Enable Notifications
-      </button>
-      <div id="notif-status" style="font-size:var(--fs-xs);color:var(--text3);margin-top:8px;font-family:'DM Mono',monospace;"></div>
-    </div>
-
-    <!-- study days -->
-    <div class="setting-card">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <div class="setting-title">Study Days</div>
-      </div>
-      <div class="setting-desc">Which days are available for study sessions?</div>
-      <div class="days-row" id="days-row"></div>
-    </div>
-
-    <!-- hours -->
-    <div class="setting-card">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <div class="setting-title">Hours Per Study Day</div>
-      </div>
-      <div class="setting-desc">How many hours can you realistically study per day?</div>
-      <div class="hours-row">
-        <input type="range" min="1" max="8" id="hours-slider" oninput="updateHours(this.value)"/>
-        <div class="hours-val" id="hours-val">3h</div>
-      </div>
-    </div>
-
-    <!-- calendar -->
-    <div class="setting-card">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <div class="setting-title">Google Calendar</div>
-      </div>
-      <div class="setting-desc">Connect your calendar to auto-import your timetable and block out classes.</div>
-      <button class="btn-gold-outline" onclick="showNotif('📅 Google Calendar sync coming in the next update!')">
-        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        Connect Calendar
-      </button>
-    </div>
-
-    <!-- danger zone -->
-    <div class="setting-card" style="border-color:rgba(224,112,96,0.18);">
-      <div class="setting-header">
-        <svg viewBox="0 0 24 24" style="stroke:var(--danger)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        <div class="setting-title" style="color:var(--danger);">Reset Data</div>
-      </div>
-      <div class="setting-desc">Clear all subjects, sessions, and streak history. Cannot be undone.</div>
-      <button class="btn-outline" style="color:var(--danger);border-color:rgba(224,112,96,0.3);" onclick="resetAll()">Reset everything</button>
-    </div>
-    <div style="height:16px;"></div>
-  </div>
-
-</div><!-- #main -->
-
-<!-- ── BOTTOM NAV ──────────────────────────────────────────────────────────── -->
-<nav id="nav">
-  <button class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
-    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span>Home</span>
-  </button>
-  <button class="nav-item" id="nav-plan" onclick="switchView('plan')">
-    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-    <span>Plan</span>
-  </button>
-  <button class="nav-item" id="nav-tutor" onclick="switchView('tutor')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span>Tutor</span>
-  </button>
-  <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    <span>Settings</span>
-  </button>
-</nav>
+</div>
 
 <!-- ── NOTIFICATION BAR ────────────────────────────────────────────────────── -->
 <div id="notif-bar"></div>
 
 <!-- ── INSTALL BANNER ─────────────────────────────────────────────────────── -->
 <div id="install-banner">
-  <svg width="30" height="30" viewBox="0 0 24 24" style="stroke:var(--gold);fill:none;stroke-width:1.8;flex-shrink:0;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-  <div class="install-text">
-    <strong>Install StudyOS</strong>
-    Add to home screen for the full app experience — offline included
-  </div>
-  <button class="btn-primary" style="width:auto;padding:9px 14px;font-size:var(--fs-sm);" onclick="installApp()">Install</button>
-  <button class="install-close" onclick="document.getElementById('install-banner').classList.remove('show')">✕</button>
+  <svg width="28" height="28" viewBox="0 0 24 24" style="stroke:var(--blue);fill:none;stroke-width:1.8;flex-shrink:0;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+  <div class="install-text"><strong>Install StudyOS</strong>Add to home screen — full app experience</div>
+  <button class="btn-primary" style="width:auto;padding:9px 14px;font-size:var(--fs-xs);" onclick="installApp()">Install</button>
+  <button onclick="document.getElementById('install-banner').classList.remove('show')" style="background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
-// ─── STATE ────────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'studyos_v3';
+
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+// Replace with your Cloudflare Worker URL after deploying the worker
+// See: worker.js file in this repo for the worker code
+const API_PROXY = 'https://empty-cell-7a4d.rhemachagara1.workers.dev';
+// If you want to test without a worker (key visible), set:
+// const API_PROXY = 'https://api.anthropic.com';
+// and add headers: {'anthropic-dangerous-direct-browser-access': 'true', 'x-api-key': 'YOUR_KEY'}
+
+const STORAGE_KEY = 'studyos_v4';
 let deferredInstall = null;
 let isOnline = navigator.onLine;
+let currentUser = null;
+let unsubFirestore = null;
 
+// ── DEFAULT STATE ──────────────────────────────────────────────────────────
 const DEFAULT = {
-  subjects:[], sessions:{},
-  streak:{ current:0, longest:0, lastStudied:null, studiedDays:[] },
-  schedule:{ mon:true,tue:true,wed:false,thu:true,fri:false,sat:true,sun:false },
-  hoursPerDay:3, notifEnabled:false, theme:'dark',
+  courses: [],       // { id, code, name, color, outline, texts, topics[], assessments[] }
+  sessions: {},      // courseId -> session[]
+  streak: { current:0, longest:0, lastStudied:null, studiedDays:[] },
+  schedule: { mon:true, tue:true, wed:false, thu:true, fri:false, sat:true, sun:false },
+  hoursPerDay: 3,
+  notifEnabled: false,
+  theme: 'dark',
+  userName: '',
+  dykToday: null,   // { date, text }
 };
 
-function load(){
-  try{ return {...DEFAULT,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}; }
-  catch{ return {...DEFAULT}; }
+function load() {
+  try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; }
+  catch { return { ...DEFAULT }; }
 }
-function save(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch{} }
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+  // Also sync to Firestore if logged in
+  if (currentUser && window._fb) {
+    const { db, doc, setDoc } = window._fb;
+    setDoc(doc(db, 'users', currentUser.uid), state).catch(() => {});
+  }
+}
 
 let state = load();
 
-// ─── ONLINE / OFFLINE ─────────────────────────────────────────────────────────
-function updateOnlineStatus(){
+// ── ONLINE / OFFLINE ───────────────────────────────────────────────────────
+function updateOnline() {
   isOnline = navigator.onLine;
   const dot = document.getElementById('online-dot');
   const banner = document.getElementById('tutor-offline');
-  if(dot) dot.classList.toggle('offline',!isOnline);
-  if(banner) banner.classList.toggle('show',!isOnline);
+  if (dot) dot.classList.toggle('offline', !isOnline);
+  if (banner) banner.classList.toggle('show', !isOnline);
 }
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus();
+window.addEventListener('online', updateOnline);
+window.addEventListener('offline', updateOnline);
+updateOnline();
 
-// ─── THEME ────────────────────────────────────────────────────────────────────
-function applyTheme(t){
-  document.documentElement.setAttribute('data-theme',t);
-  document.getElementById('theme-meta').content = t==='light' ? '#f5f2ec' : '#b48c50';
+// ── THEME ──────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-meta').content = t === 'light' ? '#ffffff' : '#0d1117';
   const sw = document.getElementById('theme-toggle-sw');
-  if(sw) sw.classList.toggle('on', t==='light');
-  // swap theme icon
+  if (sw) sw.classList.toggle('on', t === 'light');
   const icon = document.getElementById('theme-icon');
-  if(icon){
-    icon.innerHTML = t==='light'
-      ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
-      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-  }
+  if (icon) icon.innerHTML = t === 'light'
+    ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
 }
-function toggleTheme(){
-  state.theme = state.theme==='dark' ? 'light' : 'dark';
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
   applyTheme(state.theme);
   save();
 }
 applyTheme(state.theme);
 
-// ─── STUDY METHODS ────────────────────────────────────────────────────────────
+// ── FIREBASE AUTH ──────────────────────────────────────────────────────────
+function waitForFB(cb, attempts = 0) {
+  if (window._fb) { cb(); return; }
+  if (attempts > 30) { console.warn('Firebase did not load'); return; }
+  setTimeout(() => waitForFB(cb, attempts + 1), 200);
+}
+
+waitForFB(() => {
+  const { auth, onAuthStateChanged, db, doc, getDoc } = window._fb;
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      // Load data from Firestore
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          state = { ...DEFAULT, ...snap.data() };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+      } catch {}
+      showApp();
+    } else {
+      currentUser = null;
+      showAuth();
+    }
+  });
+});
+
+function showApp() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  const initial = (state.userName || currentUser?.email || '?')[0].toUpperCase();
+  const av = document.getElementById('user-avatar');
+  if (av) av.textContent = initial;
+  initApp();
+}
+function showAuth() {
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('app-screen').classList.add('hidden');
+}
+
+// Auth tab switch
+function switchAuthTab(tab) {
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('form-signin').classList.toggle('hidden', tab !== 'signin');
+  document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+}
+
+async function doSignIn() {
+  const { auth, signInWithEmailAndPassword } = window._fb;
+  const email = document.getElementById('signin-email').value.trim();
+  const pass  = document.getElementById('signin-pass').value;
+  const errEl = document.getElementById('signin-error');
+  errEl.classList.remove('show');
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e.code);
+    errEl.classList.add('show');
+  }
+}
+
+async function doSignUp() {
+  const { auth, createUserWithEmailAndPassword, db, doc, setDoc } = window._fb;
+  const name  = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  const errEl = document.getElementById('signup-error');
+  errEl.classList.remove('show');
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    state.userName = name;
+    await setDoc(doc(db, 'users', cred.user.uid), { ...state, userName: name });
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e.code);
+    errEl.classList.add('show');
+  }
+}
+
+async function doSignOut() {
+  if (!confirm('Sign out?')) return;
+  const { auth, signOut } = window._fb;
+  await signOut(auth);
+}
+
+function showUserMenu() {
+  if (!currentUser) return;
+  const name = state.userName || currentUser.email;
+  if (confirm(`Signed in as ${name}\n\nSign out?`)) doSignOut();
+}
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/weak-password': 'Password must be at least 6 characters.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'auth/invalid-credential': 'Invalid email or password.',
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+// ── API CALL ───────────────────────────────────────────────────────────────
+async function callClaude(messages, system, maxTokens = 800) {
+  // Calls your Cloudflare Worker proxy
+  const resp = await fetch(API_PROXY + '/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      system,
+      messages,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ── STUDY METHODS ──────────────────────────────────────────────────────────
 const METHODS = {
-  memorization:{ name:'Spaced Repetition', desc:'Review at increasing intervals: 1 day → 3 → 7 → 14 days.', svgPath:'M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z' },
-  concepts:    { name:'Feynman Technique', desc:'Explain each concept simply as if teaching a beginner. Identify gaps.', svgPath:'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
-  analysis:    { name:'Cornell Notes + Recall', desc:'Take structured notes, cover and recall without looking.', svgPath:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8' },
-  problems:    { name:'Worked Examples', desc:'Study solved examples first, then attempt similar ones independently.', svgPath:'M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
-  essay:       { name:'Outline → Draft → Refine', desc:'Build your argument structure first. Split 40% outline / 40% write / 20% refine.', svgPath:'M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' },
-  reading:     { name:'SQ3R Method', desc:'Survey → Question → Read → Recite → Review for deep comprehension.', svgPath:'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' },
+  memorization: { name:'Spaced Repetition', desc:'Review at increasing intervals.', color:'amber' },
+  concepts:     { name:'Feynman Technique', desc:'Explain it simply, find the gaps.', color:'blue' },
+  analysis:     { name:'Cornell Notes + Recall', desc:'Structured notes, then cover & recall.', color:'purple' },
+  problems:     { name:'Worked Examples', desc:'Study solved examples, then attempt solo.', color:'teal' },
+  essay:        { name:'Outline → Draft → Refine', desc:'Structure first, 40/40/20 split.', color:'amber' },
+  reading:      { name:'SQ3R Method', desc:'Survey, Question, Read, Recite, Review.', color:'blue' },
 };
 
-function detectMethod(name,outline){
-  const t=(name+' '+outline).toLowerCase();
-  if(/memoriz|vocab|dates|history|church|kings|timeline|chronol/.test(t)) return 'memorization';
-  if(/essay|writ|lit|cultural|discourse|rhetoric|narra/.test(t)) return 'essay';
-  if(/math|calc|problem|equation|statistic|quantit/.test(t)) return 'problems';
-  if(/theor|concept|new testament|theology|doctrine|philo|semant/.test(t)) return 'concepts';
-  if(/analys|criti|language|linguistic|semiot|interpret/.test(t)) return 'analysis';
+function detectMethod(text) {
+  const t = text.toLowerCase();
+  if (/memoriz|vocab|dates|history|church|kings|timeline/.test(t)) return 'memorization';
+  if (/essay|writ|lit|cultural|discourse|rhetoric/.test(t)) return 'essay';
+  if (/math|calc|problem|equation|statistic/.test(t)) return 'problems';
+  if (/theor|concept|new testament|theology|doctrine|philo/.test(t)) return 'concepts';
+  if (/analys|criti|language|linguistic|semiot/.test(t)) return 'analysis';
   return 'reading';
 }
 
-function methodSVG(key){
-  const p = METHODS[key]?.svgPath || METHODS.reading.svgPath;
-  return `<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--gold);fill:none;stroke-width:1.8;"><path d="${p}"/></svg>`;
-}
-
-// ─── PLAN GENERATION ─────────────────────────────────────────────────────────
-function generatePlan(subject){
-  const today = new Date(); today.setHours(0,0,0,0);
-  const deadline = new Date(subject.deadline+'T00:00:00');
-  const dayNames=['sun','mon','tue','wed','thu','fri','sat'];
-  const studyDays=[];
-  let d=new Date(today), safety=0;
-  while(studyDays.length<60 && safety<90){
-    if(state.schedule[dayNames[d.getDay()]]) studyDays.push(d.toISOString().split('T')[0]);
-    d.setDate(d.getDate()+1);
-    if(d>deadline) break;
+// ── PLAN GENERATION ────────────────────────────────────────────────────────
+function generateSessions(course, assessmentId) {
+  const assessment = course.assessments?.find(a => a.id === assessmentId);
+  if (!assessment) return [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const deadline = new Date(assessment.date + 'T00:00:00');
+  const dayNames = ['sun','mon','tue','wed','thu','fri','sat'];
+  const studyDays = [];
+  let d = new Date(today), safety = 0;
+  while (studyDays.length < 60 && safety < 90) {
+    if (state.schedule[dayNames[d.getDay()]]) studyDays.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 1);
+    if (d > deadline) break;
     safety++;
   }
-  if(!studyDays.length) studyDays.push(today.toISOString().split('T')[0]);
+  if (!studyDays.length) studyDays.push(today.toISOString().split('T')[0]);
 
-  const topics = subject.outline.split('\n').map(t=>t.trim()).filter(Boolean);
-  const methodKey = detectMethod(subject.name, subject.outline);
-
-  return topics.map((topic,i)=>{
-    const dayIdx = Math.min(Math.floor((i/topics.length)*studyDays.length), studyDays.length-1);
+  const areas = assessment.areas.split('\n').map(t => t.trim()).filter(Boolean);
+  const methodKey = detectMethod(course.name + ' ' + assessment.areas);
+  return areas.map((area, i) => {
+    const dayIdx = Math.min(Math.floor((i / areas.length) * studyDays.length), studyDays.length - 1);
     return {
-      id: subject.id+'-'+i, subjectId:subject.id, topic,
+      id: `${assessmentId}-${i}`,
+      courseId: course.id,
+      assessmentId,
+      topic: area,
       date: studyDays[dayIdx],
-      duration: Math.max(1,Math.min(2,Math.ceil(state.hoursPerDay/Math.max(1,Math.ceil(topics.length/studyDays.length))))),
-      methodKey, done:false,
+      methodKey,
+      done: false,
     };
   });
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function daysUntil(iso){
-  const today=new Date(); today.setHours(0,0,0,0);
-  return Math.ceil((new Date(iso+'T00:00:00')-today)/(864e5));
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function daysUntil(iso) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((new Date(iso + 'T00:00:00') - t) / 864e5);
 }
-function formatDate(iso){
-  return new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+function formatDate(iso) {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
 }
-function showNotif(msg){
-  const bar=document.getElementById('notif-bar');
-  bar.textContent=msg; bar.classList.add('show');
-  setTimeout(()=>bar.classList.remove('show'),3200);
+function showNotif(msg) {
+  const b = document.getElementById('notif-bar');
+  b.textContent = msg; b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 3000);
 }
-function esc(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+function esc(s) {
+  const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+}
 
-// ─── STREAK ──────────────────────────────────────────────────────────────────
-function markStudied(){
-  const today=new Date().toISOString().split('T')[0];
-  if(state.streak.studiedDays.includes(today)) return;
+// ── STREAK ─────────────────────────────────────────────────────────────────
+function markStudied() {
+  const today = new Date().toISOString().split('T')[0];
+  if (state.streak.studiedDays.includes(today)) return;
   state.streak.studiedDays.push(today);
-  const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
-  const yStr=yesterday.toISOString().split('T')[0];
-  state.streak.current = (state.streak.lastStudied===yStr||state.streak.lastStudied===today)
-    ? state.streak.current+1 : 1;
-  state.streak.lastStudied=today;
-  state.streak.longest=Math.max(state.streak.current,state.streak.longest);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  state.streak.current = (state.streak.lastStudied === yStr || state.streak.lastStudied === today)
+    ? state.streak.current + 1 : 1;
+  state.streak.lastStudied = today;
+  state.streak.longest = Math.max(state.streak.current, state.streak.longest);
   save();
-  document.getElementById('streak-display').textContent=state.streak.current;
+  document.getElementById('streak-display').textContent = state.streak.current;
 }
 
-// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
-async function setupNotifications(){
-  if(!('Notification' in window)){ showNotif('❌ Notifications not supported.'); return; }
-  const perm=await Notification.requestPermission();
-  if(perm==='granted'){
-    state.notifEnabled=true; save();
-    document.getElementById('notif-btn').textContent='✅ Notifications Active';
-    document.getElementById('notif-status').textContent='Enabled — reminders are scheduled';
+// ── DID YOU KNOW ───────────────────────────────────────────────────────────
+async function loadDYK() {
+  const today = new Date().toISOString().split('T')[0];
+  if (state.dykToday?.date === today) {
+    document.getElementById('dyk-content').innerHTML = `<div class="dyk-text">${esc(state.dykToday.text)}</div>`;
+    return;
+  }
+  if (!isOnline) {
+    document.getElementById('dyk-content').innerHTML = '<div class="dyk-text" style="opacity:0.7;">Connect to the internet to get your daily fact.</div>';
+    return;
+  }
+
+  const courseNames = state.courses.map(c => c.name).join(', ');
+  const outlines = state.courses.slice(0, 3).map(c => c.outline).join(' ').substring(0, 500);
+
+  try {
+    const text = await callClaude(
+      [{ role:'user', content:`Based on these courses: ${courseNames || 'general academics'}. Topics context: ${outlines}. Give me ONE fascinating "Did You Know" fact that is directly relevant to these subjects. It should be surprising, memorable, and genuinely academic. Keep it to 2-3 sentences. No preamble, just the fact.` }],
+      'You are an academic facts assistant. Give one concise, fascinating, curriculum-relevant fact. No bullet points, no preamble.',
+      250
+    );
+    state.dykToday = { date: today, text };
+    save();
+    document.getElementById('dyk-content').innerHTML = `<div class="dyk-text">${esc(text)}</div>`;
+  } catch {
+    document.getElementById('dyk-content').innerHTML = '<div class="dyk-text" style="opacity:0.7;">Could not load today\'s fact. Check your connection.</div>';
+  }
+}
+
+// ── NOTIFICATIONS ──────────────────────────────────────────────────────────
+async function setupNotifications() {
+  if (!('Notification' in window)) { showNotif('❌ Not supported on this browser.'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    state.notifEnabled = true; save();
+    document.getElementById('notif-btn').textContent = '✅ Notifications Active';
+    document.getElementById('notif-status').textContent = 'Enabled — reminders are scheduled';
     scheduleReminders();
     showNotif('🔔 Notifications enabled!');
-    new Notification('StudyOS',{body:'Reminders are active. You got this!',icon:'icon-192.png'});
-  } else { showNotif('⚠️ Permission denied — enable in phone settings.'); }
+    new Notification('StudyOS', { body: 'Reminders are active!', icon:'icon-192.png' });
+  } else { showNotif('⚠️ Permission denied.'); }
 }
 
-function scheduleReminders(){
-  const now=new Date();
-  const today=now.toISOString().split('T')[0];
-  const all=Object.values(state.sessions).flat();
-  const todaySessions=all.filter(s=>s.date===today&&!s.done);
-
-  if(todaySessions.length>0){
-    setTimeout(()=>{
-      if(Notification.permission==='granted')
-        new Notification('📚 Study Time!',{
-          body:`${todaySessions.length} session(s) today. First: ${todaySessions[0].topic}`,
-          icon:'icon-192.png', requireInteraction:true,
-        });
-    },4000);
+function scheduleReminders() {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const all = Object.values(state.sessions).flat();
+  const todayS = all.filter(s => s.date === today && !s.done);
+  if (todayS.length) {
+    setTimeout(() => {
+      if (Notification.permission === 'granted')
+        new Notification('📚 Study Time!', { body:`${todayS.length} session(s) today. First: ${todayS[0]?.topic}`, icon:'icon-192.png', requireInteraction:true });
+    }, 4000);
   }
-
-  // 9pm streak reminder
-  const ninepm=new Date(); ninepm.setHours(21,0,0,0);
-  if(ninepm>now){
-    setTimeout(()=>{
-      const tStr=new Date().toISOString().split('T')[0];
-      if(Notification.permission==='granted'&&!state.streak.studiedDays.includes(tStr))
-        new Notification('🔥 Keep your streak!',{
-          body:`Don't break your ${state.streak.current}-day streak. Quick session before bed?`,
-          icon:'icon-192.png', requireInteraction:true,
-        });
-    },ninepm-now);
+  const ninepm = new Date(); ninepm.setHours(21, 0, 0, 0);
+  if (ninepm > now) {
+    setTimeout(() => {
+      const tStr = new Date().toISOString().split('T')[0];
+      if (Notification.permission === 'granted' && !state.streak.studiedDays.includes(tStr))
+        new Notification('🔥 Keep your streak!', { body:`Don't break your ${state.streak.current}-day streak!`, icon:'icon-192.png', requireInteraction:true });
+    }, ninepm - now);
   }
-
   // Deadline warnings
-  state.subjects.forEach(sub=>{
-    const due=daysUntil(sub.deadline);
-    if(due===1&&Notification.permission==='granted')
-      setTimeout(()=>new Notification(`⚠️ Tomorrow: ${esc(sub.name)}!`,{
-        body:`Your ${sub.type} is due tomorrow. Final prep time!`, icon:'icon-192.png', requireInteraction:true,
-      }),3000);
-  });
+  state.courses.forEach(c => (c.assessments||[]).forEach(a => {
+    const due = daysUntil(a.date);
+    if (due === 1 && Notification.permission === 'granted')
+      setTimeout(() => new Notification(`⚠️ Tomorrow: ${esc(c.code)} ${a.type}!`, { body:`Your ${a.type} is due tomorrow. Final prep!`, icon:'icon-192.png', requireInteraction:true }), 3000);
+  }));
 }
 
-// ─── SERVICE WORKER + INSTALL ─────────────────────────────────────────────────
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
-}
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault(); deferredInstall=e;
-  setTimeout(()=>document.getElementById('install-banner').classList.add('show'),3000);
+// ── SERVICE WORKER ─────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  setTimeout(() => document.getElementById('install-banner').classList.add('show'), 3000);
 });
-function installApp(){
-  if(deferredInstall){
+function installApp() {
+  if (deferredInstall) {
     deferredInstall.prompt();
-    deferredInstall.userChoice.then(()=>{
-      deferredInstall=null;
+    deferredInstall.userChoice.then(() => {
+      deferredInstall = null;
       document.getElementById('install-banner').classList.remove('show');
     });
   }
 }
 
-// ─── VIEW SWITCHING ───────────────────────────────────────────────────────────
-function switchView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.getElementById('nav-'+name).classList.add('active');
-  document.getElementById('main').scrollTop=0;
-  if(name==='plan') renderPlan();
-  if(name==='settings') renderSettings();
-  if(name==='tutor'){ renderTutorContext(); updateOnlineStatus(); }
+// ── VIEW SWITCHING ─────────────────────────────────────────────────────────
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  document.getElementById('main').scrollTop = 0;
+  if (name === 'plan') renderCourses();
+  if (name === 'settings') renderSettings();
+  if (name === 'tutor') { renderTutorContext(); updateOnline(); }
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function renderDashboard(){
-  const h=new Date().getHours();
+// ── INIT APP ───────────────────────────────────────────────────────────────
+function initApp() {
+  // Streak check
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  const last = state.streak.lastStudied;
+  if (last && last !== today && last !== yStr && state.streak.current > 0) {
+    state.streak.current = 0; save();
+  }
+
+  applyTheme(state.theme);
+  renderDashboard();
+  loadDYK();
+  if (state.notifEnabled && Notification.permission === 'granted') scheduleReminders();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const h = new Date().getHours();
+  const name = state.userName ? `, ${state.userName.split(' ')[0]}` : '';
   document.getElementById('greeting-text').textContent =
-    (h<12?'Good morning':h<17?'Good afternoon':'Good evening')+' 👋';
+    (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening') + name + ' 👋';
   document.getElementById('date-text').textContent =
-    new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('streak-display').textContent=state.streak.current;
+    new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('streak-display').textContent = state.streak.current;
 
-  const all=Object.values(state.sessions).flat();
-  const done=all.filter(s=>s.done).length, total=all.length;
-  const pct=total?Math.round((done/total)*100):0;
-  const nextDL=state.subjects.filter(s=>daysUntil(s.deadline)>=0).sort((a,b)=>daysUntil(a.deadline)-daysUntil(b.deadline))[0];
-  const today=new Date().toISOString().split('T')[0];
-  const todaySessions=all.filter(s=>s.date===today);
+  const all = Object.values(state.sessions).flat();
+  const done = all.filter(s => s.done).length;
+  const total = all.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const today = new Date().toISOString().split('T')[0];
 
-  // stats
-  const statsIcons=[
-    { path:'M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z', val:state.streak.current+'d', key:'Streak', sub:'Best: '+state.streak.longest+'d' },
-    { path:'M18 20V10 M12 20V4 M6 20v-6', val:pct+'%', key:'Progress', sub:done+'/'+total+' done' },
-    { path:'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z', val:state.subjects.length, key:'Subjects', sub:'active' },
-    { path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', val:nextDL?daysUntil(nextDL.deadline)+'d':'—', key:'Next Due', sub:nextDL?.name||'none set' },
-  ];
-  document.getElementById('stats-grid').innerHTML=statsIcons.map(s=>`
-    <div class="stat-card">
-      <div class="stat-icon"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:1.8;"><path d="${s.path}"/></svg></div>
-      <div class="stat-val">${s.val}</div>
-      <div class="stat-key">${s.key}</div>
-      <div class="stat-sub">${s.sub}</div>
-    </div>`).join('');
+  // Next deadline
+  const allAssessments = state.courses.flatMap(c => (c.assessments || []).map(a => ({ ...a, courseName: c.code })));
+  const nextDL = allAssessments.filter(a => daysUntil(a.date) >= 0).sort((a,b) => daysUntil(a.date) - daysUntil(b.date))[0];
 
-  // progress
-  document.getElementById('progress-wrap').innerHTML = total>0?`
+  // Stats
+  document.getElementById('stats-grid').innerHTML = [
+    { cls:'amber', icon:'<path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/>', val:state.streak.current+'d', key:'Streak', sub:'Best: '+state.streak.longest+'d' },
+    { cls:'blue',  icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', val:pct+'%', key:'Progress', sub:done+'/'+total+' done' },
+    { cls:'purple',icon:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', val:state.courses.length, key:'Courses', sub:'this semester' },
+    { cls:'teal',  icon:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', val:nextDL ? daysUntil(nextDL.date)+'d' : '—', key:'Next Due', sub:nextDL ? `${nextDL.courseName} ${nextDL.type}` : 'none set' },
+  ].map(s => `<div class="stat-card ${s.cls}"><div class="stat-icon"><svg viewBox="0 0 24 24">${s.icon}</svg></div><div class="stat-val">${s.val}</div><div class="stat-key">${s.key}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+
+  // Weekly chart
+  const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const todayDay = new Date().getDay();
+  const weekData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - todayDay + i);
+    const str = d.toISOString().split('T')[0];
+    const count = all.filter(s => s.date === str && s.done).length;
+    return { label: dayLabels[i], str, count, isToday: i === todayDay };
+  });
+  const maxCount = Math.max(...weekData.map(d => d.count), 1);
+  document.getElementById('chart-card').innerHTML = `
+    <div class="chart-title">
+      <span>Weekly Activity</span>
+      <span style="font-size:var(--fs-xs);color:var(--text3);font-family:'JetBrains Mono',monospace;">${weekData.filter(d=>d.count>0).length} active days</span>
+    </div>
+    <div class="chart-bars">
+      ${weekData.map(d => `
+        <div class="chart-col">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar ${d.isToday?'today':d.str<today?'past':'future'}" style="height:${Math.max(8,(d.count/maxCount)*100)}%"></div>
+          </div>
+          <div class="chart-lbl ${d.isToday?'today':''}">${d.label.slice(0,1)}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Progress
+  document.getElementById('progress-wrap').innerHTML = total > 0 ? `
     <div class="progress-header"><span>Overall completion</span><span>${pct}%</span></div>
-    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`:'';
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>` : '';
 
-  // today sessions
-  const todayEl=document.getElementById('today-sessions');
-  if(!todaySessions.length){
-    todayEl.innerHTML=`<div class="empty-state">
-      <div class="empty-icon"><svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:var(--text3);fill:none;stroke-width:1.3;">${state.subjects.length===0?'<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'}</svg></div>
-      <div class="empty-title">${state.subjects.length===0?'No subjects yet':'Rest day 🌿'}</div>
-      <div class="empty-sub">${state.subjects.length===0?'Head to the Plan tab to add your first subject.':'No sessions scheduled today.'}</div>
+  // Today sessions
+  const todaySessions = all.filter(s => s.date === today);
+  const todayEl = document.getElementById('today-sessions');
+  if (!todaySessions.length) {
+    todayEl.innerHTML = `<div class="empty-state" style="padding:20px 0;">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" style="stroke:var(--blue);"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="empty-title">${state.courses.length === 0 ? 'No courses yet' : 'Rest day 🌿'}</div>
+      <div class="empty-sub">${state.courses.length === 0 ? 'Go to Courses to add your first course.' : 'No sessions scheduled today.'}</div>
     </div>`;
   } else {
-    todayEl.innerHTML=todaySessions.map(s=>{
-      const m=METHODS[s.methodKey]||METHODS.reading;
-      return `<div class="session-item ${s.done?'done':''}" id="sess-${esc(s.id)}">
-        <div class="session-icon"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:1.7;"><path d="${m.svgPath}"/></svg></div>
+    todayEl.innerHTML = todaySessions.map(s => {
+      const m = METHODS[s.methodKey] || METHODS.reading;
+      const course = state.courses.find(c => c.id === s.courseId);
+      return `<div class="session-item ${s.done ? 'done' : ''}">
+        <div class="session-icon ${m.color}"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke-width:1.8;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
         <div class="session-body">
-          <div class="session-topic ${s.done?'done':''}">${esc(s.topic)}</div>
-          <div class="session-method"><strong>${esc(m.name)}</strong> — ${esc(m.desc)}</div>
-          <div class="session-meta">${esc(state.subjects.find(sub=>sub.id===s.subjectId)?.name||'')} · ${s.duration}h</div>
+          <div class="session-topic ${s.done ? 'done' : ''}">${esc(s.topic)}</div>
+          <div class="session-method">${esc(m.name)}</div>
+          <div class="session-desc">${esc(m.desc)}</div>
+          <div class="session-meta">${esc(course?.code || '')} · ${s.duration || 1}h</div>
         </div>
-        ${!s.done?`<button class="done-btn" onclick="markDone('${esc(s.id)}')">Done ✓</button>`:'<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--success);fill:none;stroke-width:2;flex-shrink:0;align-self:center;"><polyline points="20 6 9 17 4 12"/></svg>'}
+        ${!s.done ? `<button class="done-btn" onclick="markDone('${esc(s.id)}','${esc(s.courseId)}')">Done ✓</button>` :
+          '<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--success);fill:none;stroke-width:2.5;flex-shrink:0;align-self:center;"><polyline points="20 6 9 17 4 12"/></svg>'}
       </div>`;
     }).join('');
   }
 
-  // habit grid
-  const dayLabels=['S','M','T','W','T','F','S'];
-  document.getElementById('habit-grid').innerHTML=Array.from({length:14}).map((_,i)=>{
-    const d=new Date(); d.setDate(d.getDate()-(13-i));
-    const str=d.toISOString().split('T')[0];
-    const isToday=str===today;
-    const studied=state.streak.studiedDays.includes(str);
+  // Habit grid
+  const dl = ['S','M','T','W','T','F','S'];
+  document.getElementById('habit-grid').innerHTML = Array.from({ length: 14 }).map((_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13 - i));
+    const str = d.toISOString().split('T')[0];
+    const isToday = str === today;
+    const studied = state.streak.studiedDays.includes(str);
     return `<div class="habit-day ${studied?'studied':isToday?'today':'missed'}" title="${str}">
-      <div class="hd-num">${d.getDate()}</div>
-      <div class="hd-label">${dayLabels[d.getDay()]}</div>
+      <div class="hd-num">${d.getDate()}</div><div class="hd-lbl">${dl[d.getDay()]}</div>
     </div>`;
   }).join('');
 }
 
-// ─── MARK DONE ────────────────────────────────────────────────────────────────
-function markDone(sessionId){
-  for(const key of Object.keys(state.sessions)){
-    const idx=state.sessions[key].findIndex(s=>s.id===sessionId);
-    if(idx>=0){ state.sessions[key][idx].done=true; break; }
+function markDone(sessionId, courseId) {
+  const arr = state.sessions[courseId];
+  if (arr) {
+    const idx = arr.findIndex(s => s.id === sessionId);
+    if (idx >= 0) arr[idx].done = true;
   }
   markStudied(); save(); renderDashboard();
   showNotif('✅ Session complete! Keep it up 💪');
-  if(state.notifEnabled) scheduleReminders();
 }
 
-// ─── ADD SUBJECT ──────────────────────────────────────────────────────────────
-function toggleAddForm(){
-  document.getElementById('add-form').classList.toggle('open');
+// ── COURSES ────────────────────────────────────────────────────────────────
+const COURSE_COLORS = ['#1a73e8','#f59e0b','#7c3aed','#0d9488','#ef4444','#ec4899'];
+let selectedColor = COURSE_COLORS[0];
+
+function selectColor(el) {
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedColor = el.dataset.color;
 }
-function addSubject(){
-  const name=document.getElementById('f-name').value.trim();
-  const deadline=document.getElementById('f-date').value;
-  const type=document.getElementById('f-type').value;
-  const outline=document.getElementById('f-outline').value.trim();
-  if(!name||!deadline){ showNotif('⚠️ Please fill in name and deadline.'); return; }
-  const subject={id:Date.now().toString(),name,deadline,type,outline:outline||name};
-  const sessions=generatePlan(subject);
-  state.subjects.push(subject);
-  state.sessions[subject.id]=sessions;
+
+function openAddCourse() {
+  document.getElementById('add-course-modal').classList.add('open');
+}
+function closeAddCourse() {
+  document.getElementById('add-course-modal').classList.remove('open');
+}
+
+function addCourse() {
+  const code    = document.getElementById('c-code').value.trim();
+  const name    = document.getElementById('c-name').value.trim();
+  const outline = document.getElementById('c-outline').value.trim();
+  const texts   = document.getElementById('c-texts').value.trim();
+  if (!code || !name) { showNotif('⚠️ Course code and name are required.'); return; }
+  const topics = outline.split('\n').map(t => t.trim()).filter(Boolean);
+  const course = { id: Date.now().toString(), code, name, color: selectedColor, outline, texts, topics, assessments: [] };
+  state.courses.push(course);
+  state.sessions[course.id] = [];
   save();
-  document.getElementById('f-name').value='';
-  document.getElementById('f-date').value='';
-  document.getElementById('f-outline').value='';
-  document.getElementById('add-form').classList.remove('open');
-  renderPlan(); renderDashboard();
-  showNotif(`📚 "${name}" added — ${sessions.length} sessions generated`);
-  if(state.notifEnabled) scheduleReminders();
+  closeAddCourse();
+  document.getElementById('c-code').value = '';
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-outline').value = '';
+  document.getElementById('c-texts').value = '';
+  renderCourses();
+  renderDashboard();
+  // Refresh DYK since we have new courses
+  state.dykToday = null; save(); loadDYK();
+  showNotif(`📚 "${code}" added!`);
 }
-function removeSubject(id){
-  if(!confirm('Remove this subject and all its sessions?')) return;
-  state.subjects=state.subjects.filter(s=>s.id!==id);
+
+function removeCourse(id) {
+  if (!confirm('Remove this course and all its data?')) return;
+  state.courses = state.courses.filter(c => c.id !== id);
   delete state.sessions[id];
-  save(); renderPlan(); renderDashboard();
+  save(); renderCourses(); renderDashboard();
 }
 
-// ─── PLAN RENDER ──────────────────────────────────────────────────────────────
-function renderPlan(){
-  const subEl=document.getElementById('subject-list');
-  const upEl=document.getElementById('upcoming-list');
-  const upLabel=document.getElementById('upcoming-label');
+function toggleCourseBody(id) {
+  const el = document.getElementById('cbody-' + id);
+  const ch = document.getElementById('cchev-' + id);
+  if (!el || !ch) return;
+  el.classList.toggle('open');
+  ch.classList.toggle('open');
+}
 
-  if(!state.subjects.length){
-    subEl.innerHTML=`<div class="empty-state">
-      <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
-      <div class="empty-title">No subjects yet</div>
-      <div class="empty-sub">Tap "+ Add" to add a subject with your course outline.<br>The AI will build your study plan automatically.</div>
-    </div>`;
-    upEl.innerHTML=''; upLabel.style.display='none'; return;
+// Add assessment
+function openAddAssessment(courseId) {
+  document.getElementById('a-course-id').value = courseId;
+  document.getElementById('add-assessment-modal').classList.add('open');
+}
+function closeAddAssessment() {
+  document.getElementById('add-assessment-modal').classList.remove('open');
+}
+
+function addAssessment() {
+  const courseId = document.getElementById('a-course-id').value;
+  const type  = document.getElementById('a-type').value;
+  const date  = document.getElementById('a-date').value;
+  const areas = document.getElementById('a-areas').value.trim();
+  if (!date) { showNotif('⚠️ Please set a deadline.'); return; }
+  const course = state.courses.find(c => c.id === courseId);
+  if (!course) return;
+  const assessment = { id: Date.now().toString(), type, date, areas: areas || course.outline };
+  course.assessments = course.assessments || [];
+  course.assessments.push(assessment);
+  // Generate sessions
+  const sessions = generateSessions(course, assessment.id);
+  state.sessions[courseId] = [...(state.sessions[courseId] || []), ...sessions];
+  save();
+  closeAddAssessment();
+  document.getElementById('a-date').value = '';
+  document.getElementById('a-areas').value = '';
+  renderCourses(); renderDashboard();
+  showNotif(`✅ ${type} added — ${sessions.length} sessions generated`);
+}
+
+function removeAssessment(courseId, assessmentId) {
+  const course = state.courses.find(c => c.id === courseId);
+  if (!course) return;
+  course.assessments = (course.assessments || []).filter(a => a.id !== assessmentId);
+  state.sessions[courseId] = (state.sessions[courseId] || []).filter(s => s.assessmentId !== assessmentId);
+  save(); renderCourses(); renderDashboard();
+}
+
+function renderCourses() {
+  const el = document.getElementById('course-list');
+  if (!state.courses.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="empty-title">No courses yet</div><div class="empty-sub">Add your courses for this semester and the AI will build your study plan.</div></div>`;
+    return;
   }
 
-  subEl.innerHTML=state.subjects.map(sub=>{
-    const sessions=state.sessions[sub.id]||[];
-    const done=sessions.filter(s=>s.done).length;
-    const pct=sessions.length?Math.round((done/sessions.length)*100):0;
-    const due=daysUntil(sub.deadline);
-    const dueCls=due<=2?'due-urgent':due<=5?'due-soon':'';
-    const methodKey=detectMethod(sub.name,sub.outline);
-    const method=METHODS[methodKey];
-    return `<div class="subject-card">
-      <div class="subject-header">
-        <div>
-          <div class="subject-name">${esc(sub.name)}</div>
-          <div class="subject-meta">
-            <span class="${dueCls}">${due===0?'Due today!':due<0?'Overdue':due+' days left'}</span>
-            · ${sub.type} · ${done}/${sessions.length} done
-          </div>
+  el.innerHTML = state.courses.map(c => {
+    const sessions = state.sessions[c.id] || [];
+    const done = sessions.filter(s => s.done).length;
+    const pct = sessions.length ? Math.round((done / sessions.length) * 100) : 0;
+    const assessments = c.assessments || [];
+
+    return `<div class="course-card">
+      <div class="course-header" onclick="toggleCourseBody('${c.id}')">
+        <div class="course-color-bar" style="background:${c.color};"></div>
+        <div class="course-info">
+          <div class="course-name">${esc(c.name)}</div>
+          <div class="course-code">${esc(c.code)} · ${c.topics?.length || 0} topics · ${pct}% done</div>
         </div>
-        <button class="remove-btn" onclick="removeSubject('${sub.id}')">
-          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
+        <div class="course-actions">
+          <button onclick="event.stopPropagation();removeCourse('${c.id}')" style="background:transparent;border:none;cursor:pointer;padding:4px;color:var(--text3);">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+          <svg id="cchev-${c.id}" class="course-chevron" viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
-      <div class="method-badge">${methodSVG(methodKey)} ${esc(method.name)}</div>
-      <div class="progress-track" style="margin-bottom:10px;"><div class="progress-fill" style="width:${pct}%"></div></div>
-      ${sessions.slice(0,6).map(s=>`
-        <div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:${s.done?'var(--text3)':'var(--text2)'};margin-bottom:5px;">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:${s.done?'var(--success)':'var(--text3)'};fill:none;stroke-width:2;flex-shrink:0;">
-            ${s.done?'<polyline points="20 6 9 17 4 12"/>':'<circle cx="12" cy="12" r="9"/>'}
-          </svg>
-          <span style="flex:1;text-decoration:${s.done?'line-through':'none'};overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(s.topic)}</span>
-          <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:var(--fs-xs);white-space:nowrap;">${formatDate(s.date)}</span>
-        </div>`).join('')}
-      ${sessions.length>6?`<div style="font-size:var(--fs-xs);color:var(--text3);margin-top:4px;">+${sessions.length-6} more sessions</div>`:''}
-    </div>`;
-  }).join('');
 
-  const today=new Date().toISOString().split('T')[0];
-  const upcoming=Object.values(state.sessions).flat()
-    .filter(s=>!s.done&&s.date>=today)
-    .sort((a,b)=>a.date.localeCompare(b.date)).slice(0,12);
-  upLabel.style.display=upcoming.length?'block':'none';
-  upEl.innerHTML=upcoming.map(s=>{
-    const m=METHODS[s.methodKey]||METHODS.reading;
-    return `<div class="session-item" style="padding:10px 12px;">
-      <div class="session-icon"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:1.7;"><path d="${m.svgPath}"/></svg></div>
-      <div class="session-body" style="min-width:0;">
-        <div class="session-topic" style="font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.topic)}</div>
-        <div class="session-meta">${esc(state.subjects.find(sub=>sub.id===s.subjectId)?.name||'')}</div>
+      <div class="course-body" id="cbody-${c.id}">
+        <!-- Progress -->
+        <div class="progress-track" style="margin-bottom:14px;"><div class="progress-fill" style="width:${pct}%;background:${c.color};"></div></div>
+
+        <!-- Assessments -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;font-family:'JetBrains Mono',monospace;">Assessments</span>
+          <button class="btn-blue-outline" style="padding:6px 12px;font-size:var(--fs-xs);" onclick="openAddAssessment('${c.id}')">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+        ${!assessments.length ? `<div style="font-size:var(--fs-xs);color:var(--text3);margin-bottom:12px;font-style:italic;">No assessments yet. Add an exam, test, or assignment.</div>` : ''}
+        <div class="assessment-row">
+          ${assessments.map(a => {
+            const due = daysUntil(a.date);
+            const dueTxt = due === 0 ? 'Today!' : due < 0 ? 'Overdue' : `${due}d`;
+            return `<div class="assessment-chip ${a.type}" onclick="removeAssessment('${c.id}','${a.id}')">
+              ${a.type} <span class="chip-due">${dueTxt}</span>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Topics -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;font-family:'JetBrains Mono',monospace;">Topics</span>
+          <span style="font-size:var(--fs-xs);color:var(--text3);">${c.topics?.length || 0} topics — tap to explore</span>
+        </div>
+        <div class="topic-list">
+          ${(c.topics || []).map((topic, i) => {
+            const isDone = (sessions).filter(s => s.topic === topic && s.done).length > 0;
+            return `<div class="topic-item" onclick="openTopicSheet('${esc(c.id)}',${i})">
+              <div class="topic-item-num" style="background:${c.color}22;color:${c.color};">${i+1}</div>
+              <div class="topic-item-text ${isDone?'topic-item-done':''}">${esc(topic)}</div>
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>`;
+          }).join('')}
+        </div>
       </div>
-      <span style="font-family:'DM Mono',monospace;font-size:var(--fs-xs);color:var(--gold);white-space:nowrap;">${formatDate(s.date)}</span>
-      <button class="done-btn" style="padding:4px 10px;" onclick="markDone('${esc(s.id)}')">Done</button>
     </div>`;
   }).join('');
 }
 
-// ─── TUTOR ────────────────────────────────────────────────────────────────────
-function renderTutorContext(){
-  const sel=document.getElementById('tutor-context');
-  const cur=sel.value;
-  sel.innerHTML='<option value="">No context (general question)</option>'+
-    state.subjects.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
-  sel.value=cur;
+// ── TOPIC DETAIL SHEET ─────────────────────────────────────────────────────
+function openTopicSheet(courseId, topicIdx) {
+  const course = state.courses.find(c => c.id === courseId);
+  if (!course) return;
+  const topic = course.topics[topicIdx];
+  document.getElementById('topic-sheet-title').textContent = topic;
+  document.getElementById('topic-sheet-body').innerHTML = `<div class="topic-loading"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-dasharray="40 20"/></svg><div>Loading overview...</div></div>`;
+  document.getElementById('topic-sheet').classList.add('open');
+  loadTopicDetail(course, topic);
 }
 
-async function sendTutor(){
-  if(!isOnline){ showNotif('📶 You\'re offline. Connect to use the tutor.'); return; }
-  const input=document.getElementById('tutor-input');
-  const q=input.value.trim();
-  if(!q) return;
-  input.value='';
+function closeTopicSheet() {
+  document.getElementById('topic-sheet').classList.remove('open');
+}
 
-  const chat=document.getElementById('tutor-chat');
-  chat.innerHTML+=`<div class="chat-bubble user"><div class="bubble-inner">${esc(q)}</div></div>`;
+async function loadTopicDetail(course, topic) {
+  if (!isOnline) {
+    document.getElementById('topic-sheet-body').innerHTML = `<div class="empty-state"><div class="empty-title">You're offline</div><div class="empty-sub">Connect to the internet to load the topic overview.</div></div>`;
+    return;
+  }
 
-  const thinking=document.createElement('div');
-  thinking.className='chat-bubble ai';
-  thinking.innerHTML='<div class="bubble-inner thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
-  chat.appendChild(thinking);
-  chat.scrollTop=chat.scrollHeight;
+  const textsContext = course.texts || 'No specific texts provided';
+  const outlineContext = course.outline || '';
 
-  const context=document.getElementById('tutor-context').value;
+  try {
+    const response = await callClaude(
+      [{ role: 'user', content:
+        `Course: ${course.name} (${course.code})
+Topic: ${topic}
+Course outline context: ${outlineContext.substring(0, 600)}
+Recommended texts: ${textsContext}
 
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`You are StudyOS AI Tutor — a brilliant, clear academic assistant for a university student at the University of Malawi studying Literary & Cultural Studies and Theology (Church History, New Testament). Explain concepts clearly with examples. Format key terms in **bold**. End with a "Quick Summary:" line. Be encouraging but academic. Keep answers focused and concise.`,
-        messages:[{role:'user',content:context?`[Studying: ${context}]\n\n${q}`:q}]
-      })
-    });
+Provide a structured topic overview with:
+1. A 3-4 sentence overview of what this topic covers
+2. Key concepts to understand (3-5 bullet points)
+3. Specific recommended readings with chapter/page references where possible based on the texts provided
 
-    if(!resp.ok){
-      const err=await resp.json().catch(()=>({}));
-      throw new Error(err.error?.message||`HTTP ${resp.status}`);
+Format your response as JSON with this structure:
+{
+  "overview": "...",
+  "keyConcepts": ["concept 1", "concept 2", ...],
+  "readings": [
+    {"title": "Book/Article Title", "author": "Author", "location": "Chapter X / Pages Y-Z", "note": "What to focus on here"},
+    ...
+  ]
+}
+Return ONLY the JSON, no other text.` }],
+      `You are an academic research assistant. Provide accurate, curriculum-relevant information about academic topics. When recommending texts, prioritize the ones the student has already listed. Be specific about where to find information.`,
+      900
+    );
+
+    let parsed;
+    try {
+      parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
+    } catch {
+      parsed = { overview: response, keyConcepts: [], readings: [] };
     }
 
-    const data=await resp.json();
-    const answer=data.content?.[0]?.text||'No response received.';
-    const formatted=answer
+    document.getElementById('topic-sheet-body').innerHTML = `
+      <div class="topic-overview-chip"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--blue);fill:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${esc(course.code)}</div>
+
+      <div class="topic-section">
+        <div class="topic-section-title">Overview</div>
+        <div class="topic-content">${esc(parsed.overview || '')}</div>
+      </div>
+
+      ${parsed.keyConcepts?.length ? `
+      <div class="topic-section">
+        <div class="topic-section-title">Key Concepts</div>
+        ${parsed.keyConcepts.map(k => `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;"><div style="width:6px;height:6px;border-radius:50%;background:var(--blue);margin-top:6px;flex-shrink:0;"></div><div class="topic-content">${esc(k)}</div></div>`).join('')}
+      </div>` : ''}
+
+      ${parsed.readings?.length ? `
+      <div class="topic-section">
+        <div class="topic-section-title">Recommended Readings</div>
+        ${parsed.readings.map(r => `<div class="text-ref">
+          <div class="text-ref-title">${esc(r.title || '')}</div>
+          <div class="text-ref-location">${esc(r.author || '')} · ${esc(r.location || '')}</div>
+          ${r.note ? `<div class="text-ref-note">${esc(r.note)}</div>` : ''}
+        </div>`).join('')}
+      </div>` : ''}
+    `;
+  } catch (err) {
+    document.getElementById('topic-sheet-body').innerHTML = `<div class="empty-state"><div class="empty-title">Couldn't load overview</div><div class="empty-sub">Check your connection and try again.</div></div>`;
+  }
+}
+
+// ── AI TUTOR ───────────────────────────────────────────────────────────────
+function renderTutorContext() {
+  const sel = document.getElementById('tutor-context');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">No context (general question)</option>' +
+    state.courses.map(c => `<option value="${esc(c.name)}">${esc(c.code)} — ${esc(c.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+async function sendTutor() {
+  if (!isOnline) { showNotif('📶 You\'re offline. Connect to use the AI Tutor.'); return; }
+  const input = document.getElementById('tutor-input');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+
+  const chat = document.getElementById('tutor-chat');
+  // Remove empty state if present
+  const emptyState = chat.querySelector('.empty-state');
+  if (emptyState) emptyState.remove();
+
+  chat.innerHTML += `<div class="chat-bubble user"><div class="bubble-inner">${esc(q)}</div></div>`;
+  const thinking = document.createElement('div');
+  thinking.className = 'chat-bubble ai';
+  thinking.innerHTML = '<div class="bubble-inner thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  chat.appendChild(thinking);
+  chat.scrollTop = chat.scrollHeight;
+
+  const context = document.getElementById('tutor-context').value;
+  const courseData = context ? state.courses.find(c => c.name === context) : null;
+  const contextStr = courseData ? `[Course: ${courseData.code} — ${courseData.name}. Texts: ${courseData.texts || 'none listed'}]` : '';
+
+  try {
+    const answer = await callClaude(
+      [{ role: 'user', content: contextStr ? `${contextStr}\n\n${q}` : q }],
+      `You are StudyOS AI Tutor — a brilliant academic assistant for a university student at the University of Malawi studying Literary & Cultural Studies and Theology (Church History, New Testament). Explain concepts clearly with examples. Format key terms in **bold**. End with a "Quick Summary:" line. Be encouraging but precise.`,
+      900
+    );
+    const formatted = answer
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
       .replace(/\n/g,'<br>');
-    thinking.innerHTML=`<div class="bubble-inner">${formatted}</div>`;
-  }catch(err){
-    thinking.innerHTML=`<div class="bubble-inner" style="color:var(--danger);">
-      <strong>Couldn't reach AI</strong><br>
-      ${navigator.onLine?'Server error — please try again in a moment.':'You appear to be offline. Reconnect and retry.'}
-    </div>`;
-    console.error('Tutor error:',err);
+    thinking.innerHTML = `<div class="bubble-inner">${formatted}</div>`;
+  } catch (err) {
+    thinking.innerHTML = `<div class="bubble-inner" style="color:var(--danger);"><strong>Couldn't reach AI</strong><br>${navigator.onLine ? 'Server error — try again in a moment.' : 'You appear to be offline.'}</div>`;
   }
-  chat.scrollTop=chat.scrollHeight;
+  chat.scrollTop = chat.scrollHeight;
 }
 
-// Enter to send
-document.getElementById('tutor-input').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendTutor(); }
+document.getElementById('tutor-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTutor(); }
 });
 
-// ─── SETTINGS ─────────────────────────────────────────────────────────────────
-function renderSettings(){
-  const days=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
-  document.getElementById('days-row').innerHTML=days.map(([k,l])=>
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+function renderSettings() {
+  const days = [['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+  document.getElementById('days-row').innerHTML = days.map(([k,l]) =>
     `<button class="day-btn ${state.schedule[k]?'on':''}" onclick="toggleDay('${k}',this)">${l}</button>`
   ).join('');
-  document.getElementById('hours-slider').value=state.hoursPerDay;
-  document.getElementById('hours-val').textContent=state.hoursPerDay+'h';
-  const sw=document.getElementById('theme-toggle-sw');
-  if(sw) sw.classList.toggle('on', state.theme==='light');
-  if(state.notifEnabled&&Notification.permission==='granted'){
-    document.getElementById('notif-btn').textContent='✅ Notifications Active';
-    document.getElementById('notif-status').textContent='Enabled — reminders are scheduled';
+  document.getElementById('hours-slider').value = state.hoursPerDay;
+  document.getElementById('hours-val').textContent = state.hoursPerDay + 'h';
+  const sw = document.getElementById('theme-toggle-sw');
+  if (sw) sw.classList.toggle('on', state.theme === 'light');
+  if (state.notifEnabled && Notification.permission === 'granted') {
+    document.getElementById('notif-btn').textContent = '✅ Notifications Active';
+    document.getElementById('notif-status').textContent = 'Enabled — reminders are scheduled';
   }
 }
-
-function toggleDay(key,btn){
-  state.schedule[key]=!state.schedule[key];
-  btn.classList.toggle('on',state.schedule[key]);
-  save();
-}
-function updateHours(val){
-  state.hoursPerDay=Number(val);
-  document.getElementById('hours-val').textContent=val+'h';
-  save();
-}
-function resetAll(){
-  if(!confirm('Reset ALL data? This cannot be undone.')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  state={...DEFAULT};
+function toggleDay(key, btn) { state.schedule[key] = !state.schedule[key]; btn.classList.toggle('on', state.schedule[key]); save(); }
+function updateHours(val) { state.hoursPerDay = Number(val); document.getElementById('hours-val').textContent = val + 'h'; save(); }
+function resetAll() {
+  if (!confirm('Reset ALL data? Cannot be undone.')) return;
+  const keepers = { theme: state.theme, userName: state.userName };
+  Object.assign(state, { ...DEFAULT, ...keepers });
   save(); renderDashboard(); showNotif('Data cleared.');
 }
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-// Streak check
-(function(){
-  const today=new Date().toISOString().split('T')[0];
-  const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
-  const yStr=yesterday.toISOString().split('T')[0];
-  const last=state.streak.lastStudied;
-  if(last&&last!==today&&last!==yStr&&state.streak.current>0){
-    state.streak.current=0; save();
-  }
-})();
-
-renderDashboard();
-if(state.notifEnabled&&Notification.permission==='granted') scheduleReminders();
 </script>
 </body>
 </html>
