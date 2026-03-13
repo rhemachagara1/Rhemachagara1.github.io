@@ -366,6 +366,15 @@ body{display:flex;flex-direction:column;}
 }
 .done-btn:active{background:var(--blue);color:#fff;}
 .done-check{width:28px;height:28px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:center;}
+.undone-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 10px;border-radius:12px;border:1.5px solid rgba(34,197,94,0.35);
+  background:rgba(34,197,94,0.1);color:var(--success);cursor:pointer;
+  font-size:9px;font-weight:700;flex-shrink:0;align-self:center;
+  transition:all 0.18s;font-family:inherit;letter-spacing:0.5px;
+}
+.undone-btn svg{width:16px;height:16px;stroke:var(--success);fill:none;stroke-width:2.5;}
+.undone-btn:active{background:rgba(34,197,94,0.2);}
 .done-check svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;}
 
 /* ── HABIT TRACKER ────────────────────────────────── */
@@ -500,6 +509,29 @@ select.input-field{cursor:pointer;}
 .ts-ref-loc{font-size:var(--fs-xs);color:var(--blue);font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
 .ts-ref-note{font-size:var(--fs-xs);color:var(--text2);line-height:1.55;}
 .ts-loading{display:flex;flex-direction:column;align-items:center;padding:48px 20px;gap:14px;color:var(--text3);}
+.ts-overview{}
+.ts-para{font-size:var(--fs-sm);line-height:1.85;color:var(--text2);margin-bottom:12px;}
+.ts-para:last-child{margin-bottom:0;}
+.ts-readings-note{font-size:var(--fs-xs);color:var(--text3);margin-bottom:10px;font-style:italic;}
+.ts-ref-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px;}
+.ts-ref-pages{
+  font-size:var(--fs-xs);font-weight:800;color:var(--blue);
+  font-family:'JetBrains Mono',monospace;white-space:nowrap;flex-shrink:0;
+  background:var(--blue-light);padding:2px 8px;border-radius:20px;
+}
+.ts-ref-author{font-size:var(--fs-xs);color:var(--text3);margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+.ts-exam-tip{
+  background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.05));
+  border:1.5px solid var(--amber-border);border-radius:var(--radius-sm);
+  padding:16px;margin-top:4px;
+}
+.ts-exam-tip-label{
+  display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:800;
+  color:var(--amber);letter-spacing:1px;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;margin-bottom:8px;
+}
+.ts-exam-tip-label svg{width:14px;height:14px;stroke:var(--amber);fill:none;stroke-width:2;}
+.ts-exam-tip-text{font-size:var(--fs-sm);color:var(--text);line-height:1.65;font-weight:500;}
 .ts-loading svg{width:36px;height:36px;stroke:var(--blue);fill:none;animation:spin 1.4s linear infinite;}
 .ts-loading span{font-size:var(--fs-sm);}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1082,6 +1114,48 @@ select.input-field{cursor:pointer;}
   </div>
 </div>
 
+<!-- EDIT COURSE MODAL -->
+<div class="modal-overlay" id="edit-course-modal" onclick="if(event.target===this)closeEditCourse()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Course</div>
+    <input type="hidden" id="ec-id"/>
+    <div class="form-row">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Course Code</label>
+        <input class="input-field" id="ec-code" placeholder="e.g. LCS221"/>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Short Name</label>
+        <input class="input-field" id="ec-name" placeholder="e.g. Literary Theory"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div class="color-row" id="edit-color-picker">
+        <div class="color-dot" style="background:#1a73e8;" data-color="#1a73e8" onclick="selectEditColor(this)"></div>
+        <div class="color-dot" style="background:#f59e0b;" data-color="#f59e0b" onclick="selectEditColor(this)"></div>
+        <div class="color-dot" style="background:#7c3aed;" data-color="#7c3aed" onclick="selectEditColor(this)"></div>
+        <div class="color-dot" style="background:#0d9488;" data-color="#0d9488" onclick="selectEditColor(this)"></div>
+        <div class="color-dot" style="background:#ef4444;" data-color="#ef4444" onclick="selectEditColor(this)"></div>
+        <div class="color-dot" style="background:#ec4899;" data-color="#ec4899" onclick="selectEditColor(this)"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Topics / Course Outline (one per line)</label>
+      <textarea class="input-field" id="ec-outline" rows="6"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recommended Texts (one per line)</label>
+      <textarea class="input-field" id="ec-texts" rows="3"></textarea>
+    </div>
+    <div class="form-btns">
+      <button class="btn-primary" style="flex:1;" onclick="saveEditCourse()">Save Changes</button>
+      <button class="btn-secondary" onclick="closeEditCourse()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="notif-bar"></div>
 <div id="install-banner">
   <svg width="26" height="26" viewBox="0 0 24 24" style="stroke:var(--blue);fill:none;stroke-width:1.8;flex-shrink:0;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
@@ -1515,7 +1589,7 @@ function renderDashboard() {
         </div>
         ${!s.done
           ? `<button class="done-btn" onclick="markDone('${esc(s.id)}','${esc(s.courseId)}')">Mark done</button>`
-          : `<div class="done-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>`}
+          : `<button class="undone-btn" onclick="markUndone('${esc(s.id)}','${esc(s.courseId)}')" title="Mark as not done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>Undo</span></button>`}
       </div>`;
     }).join('');
   }
@@ -1543,6 +1617,65 @@ function markDone(sid, cid) {
   if (arr) { const i=arr.findIndex(s=>s.id===sid); if (i>=0) arr[i].done=true; }
   markStudied(); save(); renderDashboard();
   showNotif('✅ Session complete! Well done 🎉');
+}
+
+function markUndone(sid, cid) {
+  const arr = state.sessions[cid];
+  if (arr) { const i=arr.findIndex(s=>s.id===sid); if (i>=0) arr[i].done=false; }
+  save(); renderDashboard();
+  showNotif('↩️ Marked as not done.');
+}
+
+// ── EDIT COURSE ──────────────────────────────────────
+let editSelectedColor = '#1a73e8';
+
+function selectEditColor(el) {
+  document.querySelectorAll('#edit-color-picker .color-dot').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  editSelectedColor = el.dataset.color;
+}
+
+function openEditCourse(id) {
+  const course = state.courses.find(c=>c.id===id);
+  if (!course) return;
+  document.getElementById('ec-id').value       = id;
+  document.getElementById('ec-code').value     = course.code;
+  document.getElementById('ec-name').value     = course.name;
+  document.getElementById('ec-outline').value  = course.outline || course.topics?.join('\n') || '';
+  document.getElementById('ec-texts').value    = course.texts || '';
+  editSelectedColor = course.color;
+  // Set the right color dot as selected
+  document.querySelectorAll('#edit-color-picker .color-dot').forEach(d=>{
+    d.classList.toggle('sel', d.dataset.color===course.color);
+  });
+  document.getElementById('edit-course-modal').classList.add('open');
+}
+
+function closeEditCourse() {
+  document.getElementById('edit-course-modal').classList.remove('open');
+}
+
+function saveEditCourse() {
+  const id      = document.getElementById('ec-id').value;
+  const code    = document.getElementById('ec-code').value.trim();
+  const name    = document.getElementById('ec-name').value.trim();
+  const outline = document.getElementById('ec-outline').value.trim();
+  const texts   = document.getElementById('ec-texts').value.trim();
+  if (!code||!name) { showNotif('⚠️ Course code and name are required.'); return; }
+  const course = state.courses.find(c=>c.id===id);
+  if (!course) return;
+  const topics = outline.split('\n').map(t=>t.trim()).filter(Boolean);
+  course.code    = code;
+  course.name    = name;
+  course.color   = editSelectedColor;
+  course.outline = outline;
+  course.texts   = texts;
+  course.topics  = topics;
+  save(); closeEditCourse();
+  renderCourses(); renderDashboard();
+  // Refresh DYK if course names changed
+  state.dykToday = null; save(); loadDYK();
+  showNotif(`✏️ "${code}" updated!`);
 }
 
 // ── COURSES ───────────────────────────────────────────
@@ -1631,7 +1764,10 @@ function renderCourses() {
           <div class="course-code">${esc(c.code)} &middot; ${c.topics?.length||0} topics &middot; ${pct}% done</div>
         </div>
         <div class="course-actions">
-          <button onclick="event.stopPropagation();removeCourse('${c.id}')" style="background:transparent;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;">
+          <button onclick="event.stopPropagation();openEditCourse('${c.id}')" style="background:transparent;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;" title="Edit course">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="event.stopPropagation();removeCourse('${c.id}')" style="background:transparent;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;" title="Delete course">
             <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
           <svg id="cchev-${c.id}" class="course-chevron" viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2.2;">
@@ -1703,36 +1839,117 @@ async function loadTopicDetail(course, topic) {
     return;
   }
   try {
+    const userTexts = course.texts ? `The course recommends these texts: ${course.texts}` : '';
+    const prompt = `You are a university academic tutor preparing a detailed study note for a student.
+
+Course: ${course.name} (${course.code})
+Topic: ${topic}
+Course outline context: ${course.outline.substring(0,600)}
+${userTexts}
+
+Return ONLY a valid JSON object — no markdown fences, no preamble, nothing else — in this exact shape:
+{
+  "overview": "A thorough, well-written explanation of this topic in 8-10 sentences. Cover what the topic is, its academic significance, its origins or historical context if relevant, how it connects to other ideas in the course, and what students should walk away understanding. Write in clear, engaging academic prose — not bullet points.",
+  "keyConcepts": [
+    "Concept name: A 2-3 sentence explanation of this concept and why it matters for this topic.",
+    "Concept name: ...",
+    "Concept name: ...",
+    "Concept name: ...",
+    "Concept name: ..."
+  ],
+  "readings": [
+    {
+      "title": "Full book or article title",
+      "author": "Author Last, First (Year)",
+      "pages": "Specific pages e.g. pp. 45-67, or Chapter 3 (pp. 88-102)",
+      "relevance": "One sentence on exactly what this reading covers about this specific topic and what the student will gain from it."
+    }
+  ],
+  "examTip": "One practical sentence on what examiners typically focus on for this topic — key arguments to know, common essay angles, or easily confused distinctions."
+}
+
+Rules:
+- readings: list 3-5 real, well-known academic books or articles that genuinely cover this topic. Prioritise texts already listed in the course if provided. Add canonical works scholars use for this topic. Give SPECIFIC page ranges or chapter numbers where this topic is discussed — not just "Chapter 1" but real, plausible pages.
+- keyConcepts: exactly 5 items, each starting with the concept name followed by a colon.
+- overview: minimum 8 sentences. Dense but readable.
+- examTip: concise, practical, actionable.`;
+
     const text = await callAI(
-      [{ role:'user', content:`Course: ${course.name} (${course.code})\nTopic: ${topic}\nOutline context: ${course.outline.substring(0,500)}\nRecommended texts: ${course.texts||'none listed'}\n\nProvide a structured overview. Return ONLY JSON:\n{\n  "overview": "3-4 sentence overview",\n  "keyConcepts": ["concept with brief explanation", ...],\n  "readings": [{"title":"...","author":"...","location":"Chapter X / Pages Y","note":"what to focus on"}]\n}` }],
-      'You are an academic research assistant. Return ONLY valid JSON with no markdown, no preamble.',
-      900
+      [{ role:'user', content: prompt }],
+      'You are a precise academic assistant. Return ONLY valid JSON. No markdown. No extra text.',
+      1800
     );
+
     let parsed;
-    try { parsed=JSON.parse(text.replace(/```json|```/g,'').trim()); }
-    catch { parsed={ overview:text, keyConcepts:[], readings:[] }; }
+    try {
+      parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    } catch {
+      // Try to extract JSON from the response if there's extra text
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); }
+        catch { parsed = null; }
+      }
+    }
+
+    if (!parsed) {
+      document.getElementById('topic-sheet-body').innerHTML=`<div class="empty-state"><div class="empty-title">Couldn't parse response</div><div class="empty-sub">Try again — the AI returned an unexpected format.</div></div>`;
+      return;
+    }
+
+    // Render overview paragraphs (split on double newline if present)
+    const overviewParas = (parsed.overview||'').split(/\n\n+/).filter(Boolean);
+    const overviewHTML = overviewParas.length > 1
+      ? overviewParas.map(p=>`<p class="ts-para">${esc(p)}</p>`).join('')
+      : `<p class="ts-para">${esc(parsed.overview||'')}</p>`;
 
     document.getElementById('topic-sheet-body').innerHTML = `
       <div class="ts-badge">${esc(course.code)} — ${esc(course.name)}</div>
+
       <div class="ts-section">
         <div class="ts-section-title">Overview</div>
-        <div class="ts-text">${esc(parsed.overview||'')}</div>
+        <div class="ts-overview">${overviewHTML}</div>
       </div>
-      ${parsed.keyConcepts?.length?`
+
+      ${parsed.keyConcepts?.length ? `
       <div class="ts-section">
         <div class="ts-section-title">Key Concepts</div>
-        ${parsed.keyConcepts.map(k=>`<div class="ts-concept"><div class="ts-concept-dot"></div><div class="ts-text">${esc(k)}</div></div>`).join('')}
-      </div>`:''}
-      ${parsed.readings?.length?`
+        ${parsed.keyConcepts.map(k => {
+          const colonIdx = k.indexOf(':');
+          const name = colonIdx > -1 ? k.substring(0, colonIdx).trim() : '';
+          const body = colonIdx > -1 ? k.substring(colonIdx+1).trim() : k;
+          return `<div class="ts-concept">
+            <div class="ts-concept-dot"></div>
+            <div class="ts-text">${name ? `<strong>${esc(name)}:</strong> ` : ''}${esc(body)}</div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+
+      ${parsed.readings?.length ? `
       <div class="ts-section">
-        <div class="ts-section-title">Recommended Readings</div>
-        ${parsed.readings.map(r=>`<div class="ts-ref">
-          <div class="ts-ref-title">${esc(r.title||'')}</div>
-          <div class="ts-ref-loc">${esc(r.author||'')} · ${esc(r.location||'')}</div>
-          ${r.note?`<div class="ts-ref-note">${esc(r.note)}</div>`:''}
-        </div>`).join('')}
-      </div>`:''}`;
-  } catch {
+        <div class="ts-section-title">Where to Read</div>
+        <div class="ts-readings-note">Specific sections covering this topic:</div>
+        ${parsed.readings.map(r => `
+          <div class="ts-ref">
+            <div class="ts-ref-header">
+              <div class="ts-ref-title">${esc(r.title||'')}</div>
+              <div class="ts-ref-pages">${esc(r.pages||r.location||'')}</div>
+            </div>
+            <div class="ts-ref-author">${esc(r.author||'')}</div>
+            ${r.relevance ? `<div class="ts-ref-note">${esc(r.relevance)}</div>` : ''}
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${parsed.examTip ? `
+      <div class="ts-exam-tip">
+        <div class="ts-exam-tip-label">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Exam Tip
+        </div>
+        <div class="ts-exam-tip-text">${esc(parsed.examTip)}</div>
+      </div>` : ''}
+    `;
+  } catch(e) {
     document.getElementById('topic-sheet-body').innerHTML=`<div class="empty-state"><div class="empty-title">Couldn't load overview</div><div class="empty-sub">Check your connection and try again.</div></div>`;
   }
 }
